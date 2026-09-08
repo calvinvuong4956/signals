@@ -267,9 +267,24 @@
         bottom: 20px;
         display: flex;
         flex-direction: column;
-        gap: 6px;
         z-index: 20;
-        max-width: 400px;
+        max-width: 410px;
+      }
+      .legend-panel {
+        overflow: hidden;
+        max-height: 0;
+        opacity: 0;
+        transform: translateY(8px);
+        transition:
+          max-height 0.28s ease,
+          opacity 0.2s ease,
+          transform 0.28s ease;
+      }
+      .legend.open .legend-panel {
+        max-height: 170px;
+        opacity: 1;
+        transform: translateY(0);
+        margin-bottom: 8px;
       }
       .legend-chips {
         display: flex;
@@ -277,8 +292,7 @@
         gap: 6px;
         max-height: 150px;
         overflow-y: auto;
-        margin-right: -15px;
-        padding-right: 15px;
+        padding-right: 4px;
       }
       .legend-chips::-webkit-scrollbar {
         width: 8px;
@@ -306,14 +320,37 @@
         .legend-chips {
           max-height: 96px;
         }
+        .legend.open .legend-panel {
+          max-height: 116px;
+        }
+      }
+      .legend-toggle {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: none;
+        border: none;
+        padding: 4px 2px;
+        margin: 0;
+        cursor: pointer;
+        color: var(--text-dim);
+        font: inherit;
+      }
+      .legend-toggle:hover {
+        color: var(--text);
       }
       .legend-title {
         font-size: 10px;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: var(--text-dim);
-        margin: 0 0 4px 2px;
         font-family: "IBM Plex Mono", monospace;
+      }
+      .legend-toggle-arrow {
+        flex: none;
+        transition: transform 0.22s ease;
+      }
+      .legend.open .legend-toggle-arrow {
+        transform: rotate(180deg);
       }
       .chip {
         display: flex;
@@ -856,7 +893,33 @@
         </div>
       </header>
 
-      <nav class="legend" id="legend" aria-label="Filter by focus area"></nav>
+      <nav class="legend" id="legend" aria-label="Filter by focus area">
+        <div class="legend-panel" id="legend-panel">
+          <div class="legend-chips" id="legend-chips"></div>
+        </div>
+        <button
+          class="legend-toggle"
+          id="legend-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="legend-panel"
+        >
+          <span class="legend-title">Sectors</span>
+          <svg
+            class="legend-toggle-arrow"
+            viewBox="0 0 24 24"
+            width="12"
+            height="12"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="6 15 12 9 18 15" />
+          </svg>
+        </button>
+      </nav>
 
       <div class="hint">
         <span>drag to rotate</span><span>&middot;</span
@@ -3349,14 +3412,7 @@
         };
 
         function buildLegend() {
-          var legend = $("legend");
-          var titleEl = document.createElement("div");
-          titleEl.className = "legend-title";
-          titleEl.textContent = "Sectors";
-          legend.appendChild(titleEl);
-          var chipsWrap = document.createElement("div");
-          chipsWrap.className = "legend-chips";
-          legend.appendChild(chipsWrap);
+          var chipsWrap = $("legend-chips");
 
           CATEGORIES.forEach(function (cat) {
             var count = NODES.filter(function (n) {
@@ -3527,6 +3583,13 @@
             settingsPanel.classList.remove("open");
             settingsBtn.setAttribute("aria-expanded", "false");
           }
+        });
+
+        var legendEl = $("legend");
+        var legendToggle = $("legend-toggle");
+        legendToggle.addEventListener("click", function () {
+          var open = legendEl.classList.toggle("open");
+          legendToggle.setAttribute("aria-expanded", String(open));
         });
 
         function wireSwitch(el, initial, onChange) {
