@@ -3299,7 +3299,7 @@
         /* ---------------- render loop (dirty-flag gated) ---------------- */
         function tick() {
           raf = requestAnimationFrame(tick);
-          if (ambientEnabled && !state.focusMode) {
+          if (ambientEnabled && !state.focusMode && !state.hoveredId) {
             // automatic rotation speed of node network
             constellation.rotation.y += 0.0003;
             needsRender = true;
