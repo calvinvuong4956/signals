@@ -335,6 +335,7 @@
         cursor: pointer;
         color: var(--text-dim);
         font: inherit;
+        align-self: flex-start;
       }
       .legend-toggle:hover {
         color: var(--text);
@@ -444,6 +445,10 @@
       body.focus-active .search-wrap,
       body.focus-active #settings-btn,
       body.focus-active #list-toggle-btn {
+        display: none;
+      }
+      body.list-active .legend,
+      body.list-active .hint {
         display: none;
       }
 
@@ -3666,6 +3671,7 @@
               : !listView.classList.contains("active");
           listView.classList.toggle("active", show);
           listBtn.setAttribute("aria-pressed", String(show));
+          document.body.classList.toggle("list-active", show);
           if (show) buildListView();
         }
 
