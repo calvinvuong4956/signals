@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>SIGNALS Network Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- css used to live inline, now it's in style.css -->
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-theme="dark">
+<a href="#list-toggle-btn" id="skip-link">Skip to accessible list view</a>
+<div id="app">
+
+  <div id="loading" role="status" aria-live="polite">
+    <div class="load-rings"><span></span><span></span></div>
+    <p>Loading network map&hellip;</p>
+  </div>
+
+  <div id="canvas-wrap"></div>
+  <!-- tooltip div, JS just drags it around and toggles "visible" on hover -->
+  <div id="node-tooltip" class="node-tooltip" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true"></div>
+      <div class="brand-text">
+        <span class="brand-title">SIGNALS Network Map</span>
+        <span class="brand-sub mono" id="node-count-label">&nbsp;</span>
+      </div>
+    </div>
+    <button class="focus-back" id="focus-back-btn" type="button">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      <span class="fb-dot" id="focus-back-dot"></span>
+      <span id="focus-back-label">Back to network</span>
+    </button>
+    <div class="top-controls">
+      <div class="search-wrap" id="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="search-input" type="text" placeholder="Search people, orgs, focus areas&hellip;" aria-label="Search the network" autocomplete="off">
+      </div>
+      <button class="icon-btn" id="list-toggle-btn" aria-pressed="false" title="Toggle accessible list view">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+      </button>
+      <button class="icon-btn" id="settings-btn" aria-expanded="false" aria-controls="settings-panel" title="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <nav class="legend" id="legend" aria-label="Filter by focus area"></nav>
+
+  <div class="hint">
+    <span>drag to rotate</span><span>&middot;</span><span>scroll to zoom</span><span>&middot;</span><span>tap a node</span>
+  </div>
+
+  <section class="panel" id="settings-panel" aria-hidden="true">
+    <h3>Display</h3>
+    <div class="row">
+      <div>
+        <div class="row-label">Dark mode</div>
+      </div>
+      <div class="switch" id="theme-switch" role="switch" aria-checked="true" tabindex="0" aria-label="Toggle dark mode"></div>
+    </div>
+    <div class="row">
+      <div>
+        <div class="row-label">Reduce motion</div>
+        <div class="row-sub">Pauses ambient rotation</div>
+      </div>
+      <div class="switch" id="motion-switch" role="switch" aria-checked="false" tabindex="0" aria-label="Toggle reduced motion"></div>
+    </div>
+    <div class="row">
+      <div>
+        <div class="row-label">Node size = connections</div>
+        <div class="row-sub">Larger node, more links</div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="profile" id="profile" aria-live="polite" aria-hidden="true">
+    <button class="profile-close" id="profile-close" aria-label="Close profile">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="profile-dot" id="profile-dot"></div>
+    <p class="profile-name" id="profile-name"></p>
+    <p class="profile-role" id="profile-role"></p>
+    <div class="tag-row" id="profile-tags"></div>
+    <p class="profile-org" id="profile-desc"></p>
+    <p class="profile-org" id="profile-contact"></p>
+    <a id="profile-link" href="#" target="_blank" rel="noopener noreferrer" class="tag" style="display:inline-block;margin-bottom:6px;">Visit website &rarr;</a>
+    <div class="profile-section-title">Documented relationships (<span id="conn-count">0</span>)</div>
+    <div class="conn-list" id="conn-list"></div>
+    <p class="row-sub" id="conn-empty" style="display:none;margin-top:2px;">No specific relationship is documented in the source list for this organisation — it's grouped here by sector only.</p>
+  </aside>
+
+  <div id="list-view">
+    <div class="list-grid" id="list-grid"></div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- js used to live inline too, now it's script.js -->
+<script src="script.js"></script>
+</body>
+</html>
