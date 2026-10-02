@@ -2002,19 +2002,17 @@
         container.appendChild(el);
         nodeLabelEls[entry.id] = el;
 
-        if (!entry.isSelf) {
-          el.addEventListener("mouseenter", function () {
-            state.hoveredId = entry.id;
-            refreshPointAttributes();
-          });
-          el.addEventListener("mouseleave", function () {
-            if (state.hoveredId === entry.id) state.hoveredId = null;
-            refreshPointAttributes();
-          });
-          el.addEventListener("click", function () {
-            selectNode(entry.id);
-          });
-        }
+        el.addEventListener("mouseenter", function () {
+          state.hoveredId = entry.id;
+          refreshPointAttributes();
+        });
+        el.addEventListener("mouseleave", function () {
+          if (state.hoveredId === entry.id) state.hoveredId = null;
+          refreshPointAttributes();
+        });
+        el.addEventListener("click", function () {
+          selectNode(entry.id);
+        });
       }
       el.style.display = "block";
       el.classList.toggle("node-label-hovered", entry.id === state.hoveredId);
@@ -2399,12 +2397,23 @@
         var newId = hit ? hit.id : null;
         if (newId !== state.hoveredId) {
           state.hoveredId = newId;
-          if (!state.focusMode) refreshPointAttributes();
+          if (!state.focusMode) {
+            refreshPointAttributes();
+            updateLegendHoverChip();
+            updateLegendChipHighlight();
+          } else {
+            refreshPointAttributes();
+          }
           el.style.cursor = newId ? "pointer" : "grab";
         }
-        // this is the hover-shows-name bit, just follows the cursor lol
-        if (hit) {
-          showTooltip(hit.name, e.clientX, e.clientY);
+        // this is the hover-shows-name bit, just follows the cursor lol — but skip it in
+        // focus mode since the floating node-labels already show names there
+        if (!state.focusMode) {
+          if (hit) {
+            showTooltip(hit.name, e.clientX, e.clientY);
+          } else {
+            hideTooltip();
+          }
         } else {
           hideTooltip();
         }
@@ -2415,7 +2424,11 @@
     el.addEventListener("pointerleave", function () {
       state.hoveredId = null;
       hideTooltip();
-      if (!state.focusMode) refreshPointAttributes();
+      if (!state.focusMode) {
+        refreshPointAttributes();
+        updateLegendHoverChip();
+        updateLegendChipHighlight();
+      }
     });
 
     function endDrag(e) {
