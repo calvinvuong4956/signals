@@ -2233,7 +2233,11 @@
         var newId = hit ? hit.id : null;
         if (newId !== state.hoveredId) {
           state.hoveredId = newId;
-          if (!state.focusMode) refreshPointAttributes();
+          if (!state.focusMode) {
+            refreshPointAttributes();
+            updateLegendHoverChip();
+            updateLegendChipHighlight();
+          }
           el.style.cursor = newId ? "pointer" : "grab";
         }
         // this is the hover-shows-name bit, just follows the cursor lol
@@ -2249,7 +2253,11 @@
     el.addEventListener("pointerleave", function () {
       state.hoveredId = null;
       hideTooltip();
-      if (!state.focusMode) refreshPointAttributes();
+      if (!state.focusMode) {
+        refreshPointAttributes();
+        updateLegendHoverChip();
+        updateLegendChipHighlight();
+      }
     });
 
     function endDrag(e) {
@@ -2346,6 +2354,7 @@
   var $ = function (id) {
     return document.getElementById(id);
   };
+  var categoryChipEls = [];
 
   function buildLegend() {
     var panel = $("legend-panel");
@@ -2356,6 +2365,8 @@
     legendToggle.addEventListener("click", function () {
       var open = legendEl.classList.toggle("open");
       legendToggle.setAttribute("aria-expanded", String(open));
+      updateLegendHoverChip();
+      updateLegendChipHighlight();
     });
 
     var actionsEl = document.createElement("div");
@@ -2372,7 +2383,8 @@
     actionsEl.appendChild(closeAllBtn);
     panel.insertBefore(actionsEl, chipsWrap);
 
-    var chipEls = []; // keep track so select/close all can flip every chip's look at once
+    categoryChipEls = []; // (declared at top-level — see step b)
+    var chipEls = categoryChipEls; // local alias so existing references still work
 
     CATEGORIES.forEach(function (cat) {
       var count = NODES.filter(function (n) {
@@ -2485,6 +2497,40 @@
     selectAllBtn.addEventListener("click", function () {
       setAllCats(true);
     }); // undo button for close all basically
+  }
+
+  // dim of relevant filter chips when hovering over nodes
+  function updateLegendHoverChip() {
+    var hoverChipEl = $("legend-hover-chip");
+    var legendEl = $("legend");
+    var isOpen = legendEl.classList.contains("open");
+    var hoveredNode = state.hoveredId ? nodeById[state.hoveredId] : null;
+
+    if (isOpen || !hoveredNode) {
+      hoverChipEl.classList.remove("visible");
+      return;
+    }
+    var cat = CATEGORIES.filter(function (c) {
+      return c.id === hoveredNode.category;
+    })[0];
+    hoverChipEl.innerHTML =
+      '<span class="chip-dot" style="background:' +
+      cssVar(cat.color) +
+      '"></span><span>' +
+      cat.label +
+      "</span>";
+    hoverChipEl.classList.add("visible");
+  }
+
+  function updateLegendChipHighlight() {
+    var isOpen = $("legend").classList.contains("open");
+    var hoveredNode =
+      isOpen && state.hoveredId ? nodeById[state.hoveredId] : null;
+
+    categoryChipEls.forEach(function (entry) {
+      var shouldDim = !!hoveredNode && entry.catId !== hoveredNode.category;
+      entry.chip.classList.toggle("chip-dim", shouldDim);
+    });
   }
 
   function selectNode(id) {
