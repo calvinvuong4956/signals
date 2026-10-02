@@ -1898,6 +1898,8 @@
   var FOCUS_CAMERA_Z = 230;
   var targetGroupPos = new THREE_.Vector3(0, 0, 0);
   var targetCameraZ = OVERVIEW_CAMERA_Z;
+  var nodeLabelEls = {};
+  // node id -> label <div>, only populated while in focus mode
 
   function enterFocus(id) {
     state.focusMode = true;
@@ -1919,6 +1921,56 @@
     document.body.classList.remove("focus-active");
     targetGroupPos.set(0, 0, 0);
     targetCameraZ = OVERVIEW_CAMERA_Z;
+    clearNodeLabels();
+  }
+
+  function clearNodeLabels() {
+    var container = $("node-labels");
+    container.innerHTML = "";
+    nodeLabelEls = {};
+  }
+
+  function updateNodeLabels() {
+    if (!state.focusMode || !state.selectedId) {
+      clearNodeLabels();
+      return;
+    }
+    var container = $("node-labels");
+    constellation.updateMatrixWorld(true);
+
+    var visibleIds = [state.selectedId];
+    nodeById[state.selectedId].linked.forEach(function (id) {
+      visibleIds.push(id);
+    });
+
+    // drop labels for nodes no longer part of this focus view
+    Object.keys(nodeLabelEls).forEach(function (id) {
+      if (visibleIds.indexOf(id) === -1) {
+        nodeLabelEls[id].remove();
+        delete nodeLabelEls[id];
+      }
+    });
+
+    visibleIds.forEach(function (id) {
+      var node = nodeById[id];
+      var s = projectNode(node);
+      var el = nodeLabelEls[id];
+      if (s.z > 1) {
+        if (el) el.style.display = "none";
+        return;
+      }
+      if (!el) {
+        el = document.createElement("div");
+        el.className =
+          "node-label" + (id === state.selectedId ? " node-label-self" : "");
+        el.textContent = node.name;
+        container.appendChild(el);
+        nodeLabelEls[id] = el;
+      }
+      el.style.display = "block";
+      el.style.left = s.x + "px";
+      el.style.top = s.y + "px";
+    });
   }
 
   var VERT_SHADER = [
@@ -2339,6 +2391,10 @@
     if (needsRender) {
       renderer.render(scene, camera);
       needsRender = (ambientEnabled && !state.focusMode) || animating;
+    }
+
+    if (state.focusMode) {
+      updateNodeLabels();
     }
   }
 

@@ -779,6 +779,32 @@ body.list-active .hint {
   opacity: 1;
 }
 
+/* floating labels above nodes, shown in focus/relations view */
+.node-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 15;
+}
+.node-label {
+  position: absolute;
+  transform: translate(-50%, -150%);
+  background: var(--bg-elevated);
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  padding: 4px 9px;
+  font-size: 11.5px;
+  font-family: "IBM Plex Sans", sans-serif;
+  color: var(--text);
+  white-space: nowrap;
+  box-shadow: var(--shadow);
+  pointer-events: none;
+}
+.node-label-self {
+  font-weight: 600;
+  border-color: var(--accent);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .switch::after,
   .panel,
