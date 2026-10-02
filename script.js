@@ -2266,7 +2266,7 @@
         var isNeighbor = nodeById[state.selectedId].linked.has(node.id);
         vis[i] = isSelf || isNeighbor ? 1 : 0;
         var isHoveredNeighbor = isNeighbor && node.id === state.hoveredId;
-        hi[i] = isSelf ? 1 : isNeighbor ? (isHoveredNeighbor ? 0.9 : 0.55) : 0;
+        hi[i] = isSelf ? 1 : isNeighbor ? (isHoveredNeighbor ? 1.0 : 0.55) : 0;
       } else {
         var catOn = state.activeCats[node.category];
         var matchesSearch = !searching || matchesQuery(node, state.query);

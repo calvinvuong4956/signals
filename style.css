@@ -814,7 +814,7 @@ body.list-active .hint {
     0 0 0 1px #6fb8ff;
 }
 .node-label-dimmed {
-  opacity: 0.15 !important;
+  opacity: 0.05 !important;
 }
 .node-label-more {
   font-style: italic;
