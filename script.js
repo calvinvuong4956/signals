@@ -293,6 +293,7 @@
 
   var state = {
     hoveredId: null,
+    hoveredCatId: null,
     selectedId: null,
     activeCats: {}, // id -> bool
     query: '',
@@ -372,6 +373,11 @@
     targetGroupPos.copy(rotated).negate();
     targetCameraZ = FOCUS_CAMERA_Z;
     var node = nodeById[id];
+    var cat = CATEGORIES.filter(function (c) {
+      return c.id === node.category;
+    })[0];
+    $("focus-back-label").textContent = cat.label;
+    $("focus-back-dot").style.background = cssVar(cat.color);
     var cat = CATEGORIES.filter(function(c){ return c.id === node.category; })[0];
     $('focus-back-label').textContent = node.name;
     $('focus-back-dot').style.background = cssVar(cat.color);
@@ -650,6 +656,7 @@
     var hi = geo.attributes.aHighlight.array;
     var vis = geo.attributes.aVisible.array;
     var focusId = state.selectedId || state.hoveredId;
+    var hoveredCatId = state.hoveredCatId;
     var searching = state.query.trim().length > 0;
 
     NODES.forEach(function(node){
@@ -664,6 +671,20 @@
         var matchesSearch = !searching || matchesQuery(node, state.query);
         vis[i] = (catOn && matchesSearch) ? 1 : 0;
 
+        if (hoveredCatId) {
+          hi[i] = node.category === hoveredCatId ? 1 : 0;
+        } else {
+          var isFocus =
+            focusId &&
+            (node.id === focusId || nodeById[focusId].linked.has(node.id));
+          hi[i] = focusId
+            ? isFocus
+              ? node.id === focusId
+                ? 1
+                : 0.55
+              : 0
+            : 0;
+        }
         var isFocus = focusId && (node.id === focusId || nodeById[focusId].linked.has(node.id));
         hi[i] = focusId ? (isFocus ? (node.id === focusId ? 1 : 0.55) : 0) : 0;
       }
@@ -766,6 +787,12 @@
         var newId = hit ? hit.id : null;
         if (newId !== state.hoveredId){
           state.hoveredId = newId;
+          if (!state.focusMode) {
+            refreshPointAttributes();
+            updateLegendHoverChip();
+            updateLegendChipHighlight();
+          }
+          el.style.cursor = newId ? "pointer" : "grab";
           if (!state.focusMode) refreshPointAttributes();
           else updateConnLabels(); // in focus mode the pill only shows for whatever's hovered right now
           el.style.cursor = newId ? 'pointer' : 'grab';
@@ -784,6 +811,11 @@
     el.addEventListener('pointerleave', function(){
       state.hoveredId = null;
       hideTooltip();
+      if (!state.focusMode) {
+        refreshPointAttributes();
+        updateLegendHoverChip();
+        updateLegendChipHighlight();
+      }
       if (!state.focusMode) refreshPointAttributes();
       else updateConnLabels();
     });
@@ -872,6 +904,34 @@
   }
 
   // 6. UI WIRING — all the button clicks n stuff live down here
+  var $ = function (id) {
+    return document.getElementById(id);
+  };
+  var categoryChipEls = [];
+
+  function buildLegend() {
+    var panel = $("legend-panel");
+    var chipsWrap = $("legend-chips");
+
+    var legendEl = $("legend");
+    var legendToggle = $("legend-toggle");
+    legendToggle.addEventListener("click", function () {
+      var open = legendEl.classList.toggle("open");
+      legendToggle.setAttribute("aria-expanded", String(open));
+      updateLegendHoverChip();
+      updateLegendChipHighlight();
+    });
+
+    var actionsEl = document.createElement("div");
+    actionsEl.className = "legend-actions";
+    var selectAllBtn = document.createElement("button");
+    selectAllBtn.className = "legend-action-btn";
+    selectAllBtn.type = "button";
+    selectAllBtn.textContent = "Select all";
+    var closeAllBtn = document.createElement("button");
+    closeAllBtn.className = "legend-action-btn";
+    closeAllBtn.type = "button";
+    closeAllBtn.textContent = "Close all";
   var $ = function(id){ return document.getElementById(id); };
 
   function buildLegend(){
@@ -897,7 +957,10 @@
     closeAllBtn.textContent = 'Close all';
     actionsEl.appendChild(selectAllBtn);
     actionsEl.appendChild(closeAllBtn);
+    panel.insertBefore(actionsEl, chipsWrap);
 
+    categoryChipEls = []; // (declared at top-level — see step b)
+    var chipEls = categoryChipEls; // local alias so existing references still work
     headerEl.appendChild(titleEl);
     headerEl.appendChild(actionsEl);
     legend.appendChild(headerEl);
@@ -915,6 +978,21 @@
       chip.type = 'button';
       chip.setAttribute('aria-pressed', 'true');
       chip.innerHTML =
+        '<span class="chip-dot" style="background:' +
+        cssVar(cat.color) +
+        '"></span>' +
+        '<span class="chip-label">' +
+        cat.label +
+        "</span>" +
+        '<span class="chip-count mono">' +
+        count +
+        "</span>";
+      chip.addEventListener("mouseenter", function () {
+        state.hoveredCatId = cat.id;
+        refreshPointAttributes();
+      });
+      chip.addEventListener("mouseleave", function () {
+        state.hoveredCatId = null;
         '<span class="chip-dot" style="background:' + cssVar(cat.color) + '"></span>' +
         '<span>' + cat.label + '</span>' +
         '<span class="chip-count mono">' + count + '</span>';
@@ -926,6 +1004,80 @@
       chipsWrap.appendChild(chip);
       chipEls.push({ chip: chip, catId: cat.id });
     });
+
+    // --- drag-select: hold left click + drag across chips to mass toggle ---
+    var dragState = null;
+    var DRAG_THRESHOLD = 4; // px of movement before a click becomes a drag
+
+    function chipEntryFor(chipEl) {
+      return chipEls.filter(function (entry) {
+        return entry.chip === chipEl;
+      })[0];
+    }
+
+    function applyDragTarget(chipEl) {
+      if (dragState.visited.has(chipEl)) return;
+      dragState.visited.add(chipEl);
+      var entry = chipEntryFor(chipEl);
+      if (!entry) return;
+      state.activeCats[entry.catId] = dragState.targetOn;
+      entry.chip.setAttribute("aria-pressed", String(dragState.targetOn));
+      refreshPointAttributes();
+    }
+
+    chipsWrap.addEventListener("pointerdown", function (e) {
+      if (e.pointerType === "mouse" && e.button !== 0) return; // left click only
+      var chipEl = e.target.closest(".chip");
+      if (!chipEl) return;
+      dragState = {
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        dragging: false,
+        startChip: chipEl,
+        targetOn: null,
+        visited: new Set(),
+      };
+      chipsWrap.setPointerCapture(e.pointerId);
+    });
+
+    chipsWrap.addEventListener("pointermove", function (e) {
+      if (!dragState || e.pointerId !== dragState.pointerId) return;
+      var dx = e.clientX - dragState.startX,
+        dy = e.clientY - dragState.startY;
+      if (!dragState.dragging) {
+        if (Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD)
+          return;
+        dragState.dragging = true;
+        var startEntry = chipEntryFor(dragState.startChip);
+        dragState.targetOn = startEntry
+          ? !state.activeCats[startEntry.catId]
+          : true;
+        applyDragTarget(dragState.startChip);
+      }
+      var hovered = document.elementFromPoint(e.clientX, e.clientY);
+      var chipEl = hovered && hovered.closest ? hovered.closest(".chip") : null;
+      if (chipEl) applyDragTarget(chipEl);
+    });
+
+    function endChipDrag(e) {
+      if (!dragState || e.pointerId !== dragState.pointerId) return;
+      if (!dragState.dragging) {
+        // no movement happened — treat as a normal single-chip click
+        var entry = chipEntryFor(dragState.startChip);
+        if (entry) {
+          state.activeCats[entry.catId] = !state.activeCats[entry.catId];
+          entry.chip.setAttribute(
+            "aria-pressed",
+            String(state.activeCats[entry.catId]),
+          );
+          refreshPointAttributes();
+        }
+      }
+      dragState = null;
+    }
+    chipsWrap.addEventListener("pointerup", endChipDrag);
+    chipsWrap.addEventListener("pointercancel", endChipDrag);
 
     // one helper for both buttons so we're not copy-pasting the same loop twice
     function setAllCats(isOn){
@@ -940,6 +1092,41 @@
     selectAllBtn.addEventListener('click', function(){ setAllCats(true); }); // undo button for close all basically
   }
 
+  // dim of relevant filter chips when hovering over nodes
+  function updateLegendHoverChip() {
+    var hoverChipEl = $("legend-hover-chip");
+    var legendEl = $("legend");
+    var isOpen = legendEl.classList.contains("open");
+    var hoveredNode = state.hoveredId ? nodeById[state.hoveredId] : null;
+
+    if (isOpen || !hoveredNode) {
+      hoverChipEl.classList.remove("visible");
+      return;
+    }
+    var cat = CATEGORIES.filter(function (c) {
+      return c.id === hoveredNode.category;
+    })[0];
+    hoverChipEl.innerHTML =
+      '<span class="chip-dot" style="background:' +
+      cssVar(cat.color) +
+      '"></span><span class="chip-label">' +
+      cat.label +
+      "</span>";
+    hoverChipEl.classList.add("visible");
+  }
+
+  function updateLegendChipHighlight() {
+    var isOpen = $("legend").classList.contains("open");
+    var hoveredNode =
+      isOpen && state.hoveredId ? nodeById[state.hoveredId] : null;
+
+    categoryChipEls.forEach(function (entry) {
+      var shouldDim = !!hoveredNode && entry.catId !== hoveredNode.category;
+      entry.chip.classList.toggle("chip-dim", shouldDim);
+    });
+  }
+
+  function selectNode(id) {
   function selectNode(id){
     state.selectedId = id;
     state.hoveredId = null;
