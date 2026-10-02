@@ -2348,14 +2348,15 @@
   };
 
   function buildLegend() {
-    var legend = $("legend");
+    var panel = $("legend-panel");
+    var chipsWrap = $("legend-chips");
 
-    // title row now has select-all + close-all sitting next to it
-    var headerEl = document.createElement("div");
-    headerEl.className = "legend-header";
-    var titleEl = document.createElement("div");
-    titleEl.className = "legend-title";
-    titleEl.textContent = "Sectors";
+    var legendEl = $("legend");
+    var legendToggle = $("legend-toggle");
+    legendToggle.addEventListener("click", function () {
+      var open = legendEl.classList.toggle("open");
+      legendToggle.setAttribute("aria-expanded", String(open));
+    });
 
     var actionsEl = document.createElement("div");
     actionsEl.className = "legend-actions";
@@ -2369,14 +2370,7 @@
     closeAllBtn.textContent = "Close all";
     actionsEl.appendChild(selectAllBtn);
     actionsEl.appendChild(closeAllBtn);
-
-    headerEl.appendChild(titleEl);
-    headerEl.appendChild(actionsEl);
-    legend.appendChild(headerEl);
-
-    var chipsWrap = document.createElement("div");
-    chipsWrap.className = "legend-chips";
-    legend.appendChild(chipsWrap);
+    panel.insertBefore(actionsEl, chipsWrap);
 
     var chipEls = []; // keep track so select/close all can flip every chip's look at once
 
@@ -2392,7 +2386,7 @@
         '<span class="chip-dot" style="background:' +
         cssVar(cat.color) +
         '"></span>' +
-        "<span>" +
+        '<span class="chip-label">' +
         cat.label +
         "</span>" +
         '<span class="chip-count mono">' +

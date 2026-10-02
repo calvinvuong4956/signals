@@ -115,7 +115,33 @@
         </div>
       </header>
 
-      <nav class="legend" id="legend" aria-label="Filter by focus area"></nav>
+      <nav class="legend" id="legend" aria-label="Filter by focus area">
+        <button
+          class="legend-toggle"
+          id="legend-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="legend-panel"
+        >
+          <svg
+            class="legend-toggle-arrow"
+            viewBox="0 0 24 24"
+            width="12"
+            height="12"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="9 6 15 12 9 18" />
+          </svg>
+          <span class="legend-title">Sectors</span>
+        </button>
+        <div class="legend-panel" id="legend-panel">
+          <div class="legend-chips" id="legend-chips"></div>
+        </div>
+      </nav>
 
       <div class="hint">
         <span>drag to rotate</span><span>&middot;</span
