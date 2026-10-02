@@ -2392,14 +2392,83 @@
         '<span class="chip-count mono">' +
         count +
         "</span>";
-      chip.addEventListener("click", function () {
-        state.activeCats[cat.id] = !state.activeCats[cat.id];
-        chip.setAttribute("aria-pressed", String(state.activeCats[cat.id]));
-        refreshPointAttributes();
-      });
       chipsWrap.appendChild(chip);
       chipEls.push({ chip: chip, catId: cat.id });
     });
+
+    // --- drag-select: hold left click + drag across chips to mass toggle ---
+    var dragState = null;
+    var DRAG_THRESHOLD = 4; // px of movement before a click becomes a drag
+
+    function chipEntryFor(chipEl) {
+      return chipEls.filter(function (entry) {
+        return entry.chip === chipEl;
+      })[0];
+    }
+
+    function applyDragTarget(chipEl) {
+      if (dragState.visited.has(chipEl)) return;
+      dragState.visited.add(chipEl);
+      var entry = chipEntryFor(chipEl);
+      if (!entry) return;
+      state.activeCats[entry.catId] = dragState.targetOn;
+      entry.chip.setAttribute("aria-pressed", String(dragState.targetOn));
+      refreshPointAttributes();
+    }
+
+    chipsWrap.addEventListener("pointerdown", function (e) {
+      if (e.pointerType === "mouse" && e.button !== 0) return; // left click only
+      var chipEl = e.target.closest(".chip");
+      if (!chipEl) return;
+      dragState = {
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        dragging: false,
+        startChip: chipEl,
+        targetOn: null,
+        visited: new Set(),
+      };
+      chipsWrap.setPointerCapture(e.pointerId);
+    });
+
+    chipsWrap.addEventListener("pointermove", function (e) {
+      if (!dragState || e.pointerId !== dragState.pointerId) return;
+      var dx = e.clientX - dragState.startX,
+        dy = e.clientY - dragState.startY;
+      if (!dragState.dragging) {
+        if (Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD)
+          return;
+        dragState.dragging = true;
+        var startEntry = chipEntryFor(dragState.startChip);
+        dragState.targetOn = startEntry
+          ? !state.activeCats[startEntry.catId]
+          : true;
+        applyDragTarget(dragState.startChip);
+      }
+      var hovered = document.elementFromPoint(e.clientX, e.clientY);
+      var chipEl = hovered && hovered.closest ? hovered.closest(".chip") : null;
+      if (chipEl) applyDragTarget(chipEl);
+    });
+
+    function endChipDrag(e) {
+      if (!dragState || e.pointerId !== dragState.pointerId) return;
+      if (!dragState.dragging) {
+        // no movement happened — treat as a normal single-chip click
+        var entry = chipEntryFor(dragState.startChip);
+        if (entry) {
+          state.activeCats[entry.catId] = !state.activeCats[entry.catId];
+          entry.chip.setAttribute(
+            "aria-pressed",
+            String(state.activeCats[entry.catId]),
+          );
+          refreshPointAttributes();
+        }
+      }
+      dragState = null;
+    }
+    chipsWrap.addEventListener("pointerup", endChipDrag);
+    chipsWrap.addEventListener("pointercancel", endChipDrag);
 
     // one helper for both buttons so we're not copy-pasting the same loop twice
     function setAllCats(isOn) {

@@ -348,6 +348,7 @@ input:focus-visible,
   overflow-y: auto;
   overflow-x: hidden;
   padding-right: 4px;
+  user-select: none;
 }
 .legend-chips::-webkit-scrollbar {
   width: 4px;
