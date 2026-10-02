@@ -2011,6 +2011,9 @@
             if (state.hoveredId === entry.id) state.hoveredId = null;
             refreshPointAttributes();
           });
+          el.addEventListener("click", function () {
+            selectNode(entry.id);
+          });
         }
       }
       el.style.display = "block";
