@@ -1930,6 +1930,8 @@
     nodeLabelEls = {};
   }
 
+  var NODE_LABEL_CAP = 7; // self + up to this many neighbors shown directly
+
   function updateNodeLabels() {
     if (!state.focusMode || !state.selectedId) {
       clearNodeLabels();
@@ -1938,12 +1940,37 @@
     var container = $("node-labels");
     constellation.updateMatrixWorld(true);
 
-    var visibleIds = [state.selectedId];
-    nodeById[state.selectedId].linked.forEach(function (id) {
-      visibleIds.push(id);
-    });
+    var selfNode = nodeById[state.selectedId];
+    var neighborIds = Array.from(selfNode.linked);
 
-    // drop labels for nodes no longer part of this focus view
+    // project everything once, then sort neighbors by depth (closest to camera first)
+    var selfProj = projectNode(selfNode);
+    var neighborProjs = neighborIds
+      .map(function (id) {
+        return { id: id, s: projectNode(nodeById[id]) };
+      })
+      .filter(function (entry) {
+        return entry.s.z <= 1; // drop anything behind the camera
+      })
+      .sort(function (a, b) {
+        return a.s.z - b.s.z;
+      });
+
+    var shown = neighborProjs.slice(0, NODE_LABEL_CAP);
+    var hiddenCount = neighborProjs.length - shown.length;
+
+    var entries = [{ id: state.selectedId, s: selfProj, isSelf: true }].concat(
+      shown.map(function (entry) {
+        return { id: entry.id, s: entry.s, isSelf: false };
+      }),
+    );
+
+    var visibleIds = entries.map(function (e) {
+      return e.id;
+    });
+    if (hiddenCount > 0) visibleIds.push("__more__");
+
+    // drop labels no longer needed
     Object.keys(nodeLabelEls).forEach(function (id) {
       if (visibleIds.indexOf(id) === -1) {
         nodeLabelEls[id].remove();
@@ -1951,26 +1978,101 @@
       }
     });
 
-    visibleIds.forEach(function (id) {
-      var node = nodeById[id];
-      var s = projectNode(node);
-      var el = nodeLabelEls[id];
-      if (s.z > 1) {
-        if (el) el.style.display = "none";
+    // depth range across currently shown entries, for fade/scale mapping
+    var zVals = entries.map(function (e) {
+      return e.s.z;
+    });
+    var zMin = Math.min.apply(null, zVals);
+    var zMax = Math.max.apply(null, zVals);
+    var zSpan = Math.max(zMax - zMin, 0.0001);
+
+    var placedBoxes = [];
+
+    entries.forEach(function (entry) {
+      if (entry.s.z > 1) {
+        if (nodeLabelEls[entry.id])
+          nodeLabelEls[entry.id].style.display = "none";
         return;
       }
+      var el = nodeLabelEls[entry.id];
       if (!el) {
         el = document.createElement("div");
-        el.className =
-          "node-label" + (id === state.selectedId ? " node-label-self" : "");
-        el.textContent = node.name;
+        el.className = "node-label" + (entry.isSelf ? " node-label-self" : "");
+        el.textContent = nodeById[entry.id].name;
         container.appendChild(el);
-        nodeLabelEls[id] = el;
+        nodeLabelEls[entry.id] = el;
+
+        if (!entry.isSelf) {
+          el.addEventListener("mouseenter", function () {
+            state.hoveredId = entry.id;
+            refreshPointAttributes();
+          });
+          el.addEventListener("mouseleave", function () {
+            if (state.hoveredId === entry.id) state.hoveredId = null;
+            refreshPointAttributes();
+          });
+        }
       }
       el.style.display = "block";
-      el.style.left = s.x + "px";
-      el.style.top = s.y + "px";
+      el.classList.toggle("node-label-hovered", entry.id === state.hoveredId);
+
+      // depth cue: nearer = full size/opacity, farther = smaller/fainter
+      var depthT = entry.isSelf ? 0 : (entry.s.z - zMin) / zSpan;
+      var opacity = entry.isSelf ? 1 : 1 - depthT * 0.55;
+      var scale = entry.isSelf ? 1 : 1 - depthT * 0.22;
+      el.style.opacity = String(opacity);
+      el.style.transform = "translate(-50%, -150%) scale(" + scale + ")";
+
+      // simple overlap avoidance: nudge down if colliding with an already-placed label
+      var x = entry.s.x,
+        y = entry.s.y;
+      var w = el.offsetWidth || entry.id.length * 6 + 20;
+      var h = 22;
+      var box = { x: x - w / 2, y: y - h, w: w, h: h };
+      var guard = 0;
+      while (
+        guard < 12 &&
+        placedBoxes.some(function (b) {
+          return boxesOverlap(b, box);
+        })
+      ) {
+        box.y -= h * 0.6;
+        guard++;
+      }
+      placedBoxes.push(box);
+      var adjustedTop = y - (y - box.y - h);
+
+      el.style.left = x + "px";
+      el.style.top = adjustedTop + "px";
     });
+
+    if (hiddenCount > 0) {
+      var moreEl = nodeLabelEls.__more__;
+      if (!moreEl) {
+        moreEl = document.createElement("div");
+        moreEl.className = "node-label node-label-more";
+        container.appendChild(moreEl);
+        nodeLabelEls.__more__ = moreEl;
+      }
+      moreEl.textContent = "+" + hiddenCount + " more";
+      moreEl.style.display = "block";
+      moreEl.style.opacity = "0.8";
+      moreEl.style.transform = "translate(-50%, -150%)";
+      moreEl.style.left = selfProj.x + "px";
+      moreEl.style.top = selfProj.y + 26 + "px"; // just below the self label
+    } else if (nodeLabelEls.__more__) {
+      nodeLabelEls.__more__.remove();
+      delete nodeLabelEls.__more__;
+    }
+  }
+
+  function boxesOverlap(a, b) {
+    return !(
+      a.x + a.w < b.x ||
+      b.x + b.w < a.x ||
+      a.y + a.h < b.y ||
+      b.y + b.h < a.y
+    );
   }
 
   var VERT_SHADER = [
@@ -2154,7 +2256,8 @@
         var isSelf = node.id === state.selectedId;
         var isNeighbor = nodeById[state.selectedId].linked.has(node.id);
         vis[i] = isSelf || isNeighbor ? 1 : 0;
-        hi[i] = isSelf ? 1 : isNeighbor ? 0.55 : 0;
+        var isHoveredNeighbor = isNeighbor && node.id === state.hoveredId;
+        hi[i] = isSelf ? 1 : isNeighbor ? (isHoveredNeighbor ? 0.9 : 0.55) : 0;
       } else {
         var catOn = state.activeCats[node.category];
         var matchesSearch = !searching || matchesQuery(node, state.query);

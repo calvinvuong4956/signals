@@ -798,7 +798,25 @@ body.list-active .hint {
   color: var(--text);
   white-space: nowrap;
   box-shadow: var(--shadow);
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: default;
+  transition:
+    opacity 0.15s ease,
+    left 0.05s linear,
+    top 0.05s linear,
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+.node-label-hovered {
+  border-color: #6fb8ff;
+  box-shadow:
+    var(--shadow),
+    0 0 0 1px #6fb8ff;
+}
+.node-label-more {
+  font-style: italic;
+  color: var(--text-dim);
+  border-style: dashed;
 }
 .node-label-self {
   font-weight: 600;
