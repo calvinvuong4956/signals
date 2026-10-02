@@ -813,6 +813,9 @@ body.list-active .hint {
     var(--shadow),
     0 0 0 1px #6fb8ff;
 }
+.node-label-dimmed {
+  opacity: 0.15 !important;
+}
 .node-label-more {
   font-style: italic;
   color: var(--text-dim);

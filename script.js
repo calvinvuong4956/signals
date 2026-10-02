@@ -2046,6 +2046,14 @@
       el.style.top = adjustedTop + "px";
     });
 
+    var hoveredId = state.hoveredId;
+    entries.forEach(function (entry) {
+      var el = nodeLabelEls[entry.id];
+      if (!el || el.style.display === "none") return;
+      var shouldDim = hoveredId && entry.id !== hoveredId;
+      el.classList.toggle("node-label-dimmed", shouldDim);
+    });
+
     if (hiddenCount > 0) {
       var moreEl = nodeLabelEls.__more__;
       if (!moreEl) {
