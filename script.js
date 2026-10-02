@@ -2516,7 +2516,7 @@
     hoverChipEl.innerHTML =
       '<span class="chip-dot" style="background:' +
       cssVar(cat.color) +
-      '"></span><span>' +
+      '"></span><span class="chip-label">' +
       cat.label +
       "</span>";
     hoverChipEl.classList.add("visible");
