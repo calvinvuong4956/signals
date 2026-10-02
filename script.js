@@ -1930,7 +1930,7 @@
     nodeLabelEls = {};
   }
 
-  var NODE_LABEL_CAP = 7; // self + up to this many neighbors shown directly
+  var NODE_LABEL_CAP = 9; // self + up to this many neighbors shown directly
 
   function updateNodeLabels() {
     if (!state.focusMode || !state.selectedId) {
