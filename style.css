@@ -395,6 +395,9 @@ input:focus-visible,
   flex: none;
   margin-top: 5px;
 }
+.legend-chips .chip-dot {
+  margin-top: 3.5px;
+}
 .chip-label {
   flex: 1;
   min-width: 0;
@@ -431,6 +434,7 @@ input:focus-visible,
   height: 9px;
   border-radius: 50%;
   flex: none;
+  margin-top: 0;
 }
 
 .chip.chip-dim {
