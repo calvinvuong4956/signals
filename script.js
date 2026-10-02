@@ -1884,6 +1884,7 @@
 
   var state = {
     hoveredId: null,
+    hoveredCatId: null,
     selectedId: null,
     activeCats: {}, // id -> bool
     query: "",
@@ -2094,6 +2095,7 @@
     var hi = geo.attributes.aHighlight.array;
     var vis = geo.attributes.aVisible.array;
     var focusId = state.selectedId || state.hoveredId;
+    var hoveredCatId = state.hoveredCatId;
     var searching = state.query.trim().length > 0;
 
     NODES.forEach(function (node) {
@@ -2108,10 +2110,20 @@
         var matchesSearch = !searching || matchesQuery(node, state.query);
         vis[i] = catOn && matchesSearch ? 1 : 0;
 
-        var isFocus =
-          focusId &&
-          (node.id === focusId || nodeById[focusId].linked.has(node.id));
-        hi[i] = focusId ? (isFocus ? (node.id === focusId ? 1 : 0.55) : 0) : 0;
+        if (hoveredCatId) {
+          hi[i] = node.category === hoveredCatId ? 1 : 0;
+        } else {
+          var isFocus =
+            focusId &&
+            (node.id === focusId || nodeById[focusId].linked.has(node.id));
+          hi[i] = focusId
+            ? isFocus
+              ? node.id === focusId
+                ? 1
+                : 0.55
+              : 0
+            : 0;
+        }
       }
     });
 
@@ -2404,6 +2416,14 @@
         '<span class="chip-count mono">' +
         count +
         "</span>";
+      chip.addEventListener("mouseenter", function () {
+        state.hoveredCatId = cat.id;
+        refreshPointAttributes();
+      });
+      chip.addEventListener("mouseleave", function () {
+        state.hoveredCatId = null;
+        refreshPointAttributes();
+      });
       chipsWrap.appendChild(chip);
       chipEls.push({ chip: chip, catId: cat.id });
     });
