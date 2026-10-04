@@ -516,6 +516,10 @@ body.focus-active #settings-btn,
 body.focus-active #list-toggle-btn {
   display: none;
 }
+body.list-active .legend,
+body.list-active .hint {
+  display: none;
+}
 
 /* ---------- settings panel ---------- */
 .panel {

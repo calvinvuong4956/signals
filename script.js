@@ -3033,6 +3033,7 @@
         : !listView.classList.contains("active");
     listView.classList.toggle("active", show);
     listBtn.setAttribute("aria-pressed", String(show));
+    document.body.classList.toggle("list-active", show);
     if (show) buildListView();
   }
 
