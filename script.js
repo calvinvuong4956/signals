@@ -2014,7 +2014,7 @@
     "  vVisible = aVisible;",
     "  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);",
     "  float dynamicSize = aSize * (1.0 + aHighlight * 0.85);",
-    "  gl_PointSize = dynamicSize * (440.0 / -mvPosition.z);",
+    "  gl_PointSize = dynamicSize * (500.0 / -mvPosition.z);",
     "  gl_Position = projectionMatrix * mvPosition;",
     "}",
   ].join("\n");
