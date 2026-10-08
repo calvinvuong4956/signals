@@ -2362,6 +2362,46 @@
       }
     });
 
+    // remove + re-add connecting lines function to match visible sectors and search results
+    //  > clicking "close all" makes connection lines disappear
+    //  > clicking "select all" males connection lines reappear (if they have disappeared)
+    //  > turning off respective sectors removes its connection lines
+    //  > searching for respective sectors removes connection lines
+    var linePositions = lineBase.geometry.attributes.position.array;
+
+    EDGES.forEach(function (edge, edgeIndex) {
+      var a = nodeById[edge.a];
+      var b = nodeById[edge.b];
+
+      var showEdge =
+        state.activeCats[a.category] &&
+        state.activeCats[b.category] &&
+        (!searching || matchesQuery(a, state.query)) &&
+        (!searching || matchesQuery(b, state.query));
+
+      var offset = edgeIndex * 6;
+
+      if (showEdge) {
+        var pa = layout[edge.a];
+        var pb = layout[edge.b];
+
+        linePositions[offset] = pa.x;
+        linePositions[offset + 1] = pa.y;
+        linePositions[offset + 2] = pa.z;
+
+        linePositions[offset + 3] = pb.x;
+        linePositions[offset + 4] = pb.y;
+        linePositions[offset + 5] = pb.z;
+      } else {
+        // Collapse hidden lines so they are no longer visible.
+        for (var j = 0; j < 6; j++) {
+          linePositions[offset + j] = 0;
+        }
+      }
+    });
+
+    lineBase.geometry.attributes.position.needsUpdate = true;
+
     geo.attributes.aHighlight.needsUpdate = true;
     geo.attributes.aVisible.needsUpdate = true;
     pointCloud.material.uniforms.uDim.value =
