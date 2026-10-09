@@ -513,7 +513,8 @@ body.focus-active .legend,
 body.focus-active .hint,
 body.focus-active .search-wrap,
 body.focus-active #settings-btn,
-body.focus-active #list-toggle-btn {
+body.focus-active #list-toggle-btn,
+body.focus-active #mute-btn {
   display: none;
 }
 body.list-active .legend,
@@ -612,7 +613,8 @@ body.list-active .hint {
   right: 20px;
   width: 290px;
   max-height: calc(100% - 100px);
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   background: var(--bg-elevated);
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -671,6 +673,10 @@ body.list-active .hint {
   font-size: 12.5px;
   color: var(--text-dim);
   margin: 0 0 12px;
+}
+#profile-contact {
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 .tag-row {
   display: flex;
