@@ -2014,7 +2014,7 @@
     "  vVisible = aVisible;",
     "  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);",
     "  float dynamicSize = aSize * (1.0 + aHighlight * 0.85);",
-    "  gl_PointSize = dynamicSize * (550.0 / -mvPosition.z);",
+    "  gl_PointSize = dynamicSize * (500.0 / -mvPosition.z);",
     "  gl_Position = projectionMatrix * mvPosition;",
     "}",
   ].join("\n");
@@ -2249,6 +2249,9 @@
       new THREE_.BufferAttribute(new Float32Array(0), 3),
     );
     lineHighlight = new THREE_.LineSegments(hGeo, hMat);
+    // Prevent highlighted connections from disappearing due to restricted rotation or zoom
+    lineHighlight.frustumCulled = false;
+
     constellation.add(lineHighlight);
   }
 
@@ -2260,6 +2263,7 @@
         "position",
         new THREE__.BufferAttribute(new Float32Array(0), 3),
       );
+      lineHighlight.geometry.computeBoundingSphere();
       return;
     }
     var arr = [];
