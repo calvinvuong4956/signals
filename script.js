@@ -2043,7 +2043,7 @@
     var w = wrap.clientWidth,
       h = wrap.clientHeight;
     camera = new THREE_.PerspectiveCamera(48, w / h, 0.1, 2000);
-    camera.position.set(0, 12, 420);
+    camera.position.set(0, 8, 420);
 
     renderer = new THREE_.WebGLRenderer({
       antialias: true,
@@ -2575,7 +2575,7 @@
 
         // Update the target zoom instead of the camera directly.
         targetCameraZ = Math.max(
-          160,
+          40,
           Math.min(850, targetCameraZ + e.deltaY * 0.4),
         );
 
