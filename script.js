@@ -2249,6 +2249,7 @@
       new THREE_.BufferAttribute(new Float32Array(0), 3),
     );
     lineHighlight = new THREE_.LineSegments(hGeo, hMat);
+
     // Prevent highlighted connections from disappearing due to restricted rotation or zoom
     lineHighlight.frustumCulled = false;
 
