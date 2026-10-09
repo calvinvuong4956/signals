@@ -878,7 +878,8 @@ body.list-active .hint {
   inset: 0;
   z-index: 15;
   background: var(--bg);
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 90px 20px 40px;
   display: none;
 }
@@ -1037,4 +1038,51 @@ body.list-active .hint {
     transition: none;
     animation: none;
   }
+}
+/* ---------- custom vertical scrollbars ---------- */
+
+/* Profile, sector filters, and node list */
+.profile,
+.legend-chips,
+#list-view {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+/* Scrollbar width */
+.profile::-webkit-scrollbar,
+.legend-chips::-webkit-scrollbar,
+#list-view::-webkit-scrollbar {
+  width: 6px;
+}
+
+/* Transparent track */
+.profile::-webkit-scrollbar-track,
+.legend-chips::-webkit-scrollbar-track,
+#list-view::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Remove up/down arrow buttons */
+.profile::-webkit-scrollbar-button,
+.legend-chips::-webkit-scrollbar-button,
+#list-view::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Scrollbar thumb */
+.profile::-webkit-scrollbar-thumb,
+.legend-chips::-webkit-scrollbar-thumb,
+#list-view::-webkit-scrollbar-thumb {
+  background: var(--text-dim);
+  border-radius: 8px;
+}
+
+/* Hover effect */
+.profile::-webkit-scrollbar-thumb:hover,
+.legend-chips::-webkit-scrollbar-thumb:hover,
+#list-view::-webkit-scrollbar-thumb:hover {
+  background: var(--text);
 }
