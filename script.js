@@ -2567,11 +2567,13 @@
       "wheel",
       function (e) {
         e.preventDefault();
-        // zoom works in focus mode too now, so you can get in close on a node's connections
-        camera.position.z = Math.max(
+
+        // Update the target zoom instead of the camera directly.
+        targetCameraZ = Math.max(
           160,
-          Math.min(850, camera.position.z + e.deltaY * 0.2),
+          Math.min(850, targetCameraZ + e.deltaY * 0.4),
         );
+
         needsRender = true;
       },
       { passive: false },
