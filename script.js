@@ -1967,6 +1967,7 @@
   var FOCUS_CAMERA_Z = 230;
   var targetGroupPos = new THREE_.Vector3(0, 0, 0);
   var targetCameraZ = OVERVIEW_CAMERA_Z;
+  var targetCameraY = 8;
 
   function enterFocus(id) {
     state.focusMode = true;
@@ -1975,6 +1976,7 @@
     var rotated = local.clone().applyEuler(constellation.rotation);
     targetGroupPos.copy(rotated).negate();
     targetCameraZ = FOCUS_CAMERA_Z;
+    targetCameraY = 0;
     var node = nodeById[id];
     var cat = CATEGORIES.filter(function (c) {
       return c.id === node.category;
@@ -1988,6 +1990,7 @@
     document.body.classList.remove("focus-active");
     targetGroupPos.set(0, 0, 0);
     targetCameraZ = OVERVIEW_CAMERA_Z;
+    targetCameraY = 8;
   }
 
   // keeps the selected node pinned at the centre while you drag-rotate around it in focus mode —
@@ -2643,10 +2646,16 @@
 
     var posDiff = constellation.position.distanceTo(targetGroupPos);
     var zDiff = Math.abs(camera.position.z - targetCameraZ);
-    var animating = posDiff > 0.05 || zDiff > 0.3;
+    var yDiff = Math.abs(camera.position.y - targetCameraY);
+
+    var animating = posDiff > 0.05 || zDiff > 0.3 || yDiff > 0.05;
+
     if (animating) {
       constellation.position.lerp(targetGroupPos, 0.14);
+
       camera.position.z += (targetCameraZ - camera.position.z) * 0.14;
+      camera.position.y += (targetCameraY - camera.position.y) * 0.14;
+
       needsRender = true;
     }
 
