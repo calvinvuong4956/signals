@@ -1000,10 +1000,10 @@ body.list-active .hint {
   font-size: 11.5px;
   font-family: "Montserrat", sans-serif;
   color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 170px;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  max-width: none;
   box-shadow: var(--shadow);
   opacity: 0;
   transition: opacity 0.15s ease;
