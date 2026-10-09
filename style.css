@@ -1039,6 +1039,7 @@ body.list-active .hint {
     animation: none;
   }
 }
+
 /* ---------- custom vertical scrollbars ---------- */
 
 /* Profile, sector filters, and node list */
@@ -1085,4 +1086,13 @@ body.list-active .hint {
 .legend-chips::-webkit-scrollbar-thumb:hover,
 #list-view::-webkit-scrollbar-thumb:hover {
   background: var(--text);
+}
+
+/* ---------- Aliens Logo Styling ---------- */
+.brand-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  flex-shrink: 0;
+  transform: translateY(5px);
 }
