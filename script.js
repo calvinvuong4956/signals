@@ -1979,7 +1979,7 @@
     var cat = CATEGORIES.filter(function (c) {
       return c.id === node.category;
     })[0];
-    $("focus-back-label").textContent = node.name;
+    $("focus-back-label").textContent = cat.label;
     $("focus-back-dot").style.background = cssVar(cat.color);
   }
 
