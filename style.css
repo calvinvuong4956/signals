@@ -71,6 +71,9 @@ body {
   background: var(--bg);
   overscroll-behavior: none;
 }
+body[data-theme="light"] {
+  background: linear-gradient(160deg, #eef0ef 0%, #e2e5e6 55%, #cfd3d6 100%);
+}
 body {
   font-family: "Montserrat", system-ui, sans-serif;
   color: var(--text);

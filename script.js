@@ -1875,7 +1875,8 @@
     pointCloud,
     lineBase,
     lineHighlight;
-  var backgroundStars, milkyWayBand;
+  var backgroundStars, milkyWayBand, accentStars;
+  var bgStarColorSets = null;
   var raf = null;
   var needsRender = true;
   var reduceMotion = window.matchMedia(
@@ -1913,8 +1914,7 @@
     masterGain.connect(audioCtx.destination);
   }
 
-  // no ambient hum anymore, just the click sfx — each one's a tiny "chime" made of the note
-  // plus a quiet, slightly-detuned overtone on top so it comes out glassy/sparkly instead of a flat beep
+  // click/hover sfx — note + quiet detuned overtone, glassy instead of a flat beep
   function playChime(freq, duration, peak, delay) {
     if (!audioCtx || state.muted) return;
     var t0 = audioCtx.currentTime + (delay || 0);
@@ -1923,7 +1923,7 @@
       var gain = audioCtx.createGain();
       osc.type = "sine";
       osc.frequency.value = freq * overtoneMult;
-      var localPeak = idx === 0 ? peak : peak * 0.35; // overtone sits quietly under the main note
+      var localPeak = idx === 0 ? peak : peak * 0.35;
       gain.gain.setValueAtTime(0.0001, t0);
       gain.gain.exponentialRampToValueAtTime(localPeak, t0 + 0.012);
       gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
@@ -1934,7 +1934,41 @@
     });
   }
 
-  // no background sound anymore — just the click + hover chimes below, nothing playing on a loop
+  // near-silent background drone, peaks well under the chimes
+  var ambientHumStarted = false;
+  function startAmbientHum() {
+    if (ambientHumStarted || !audioCtx) return;
+    ambientHumStarted = true;
+
+    var humGain = audioCtx.createGain();
+    humGain.gain.value = 0.0001;
+    var filter = audioCtx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = 420;
+    humGain.connect(filter);
+    filter.connect(masterGain);
+
+    [55, 55.4].forEach(function (freq) {
+      var osc = audioCtx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      osc.connect(humGain);
+      osc.start();
+    });
+
+    var lfo = audioCtx.createOscillator();
+    var lfoGain = audioCtx.createGain();
+    lfo.frequency.value = 0.045;
+    lfoGain.gain.value = 0.005;
+    lfo.connect(lfoGain);
+    lfoGain.connect(humGain.gain);
+    lfo.start();
+
+    var t0 = audioCtx.currentTime;
+    humGain.gain.cancelScheduledValues(t0);
+    humGain.gain.setValueAtTime(0.0001, t0);
+    humGain.gain.linearRampToValueAtTime(0.016, t0 + 4.5);
+  }
 
   function playHoverSound() {
     playChime(1760, 0.12, 0.05);
@@ -1951,12 +1985,17 @@
       playChime(freq, 0.2, 0.05, i * 0.04);
     });
   }
+  // generic short, neutral tick for ordinary UI clicks (toggles, buttons, filters) —
+  function playClickSound() {
+    playChime(1318.5, 0.1, 0.045);
+  }
 
   // browsers won't let any sound play until there's been a real click/tap/keypress —
   // this just wakes the audio context up on whichever comes first
   function wakeAudio() {
     ensureAudio();
     if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+    startAmbientHum();
     window.removeEventListener("pointerdown", wakeAudio);
     window.removeEventListener("keydown", wakeAudio);
   }
@@ -2079,6 +2118,7 @@
     var farGeo = new THREE_.BufferGeometry();
     var farPositions = new Float32Array(farCount * 3);
     var farColors = new Float32Array(farCount * 3);
+    var farColorsLight = new Float32Array(farCount * 3);
     for (var i = 0; i < farCount; i++) {
       // scatter on a big sphere shell well outside the network so it's always "out there"
       var r = 900 + Math.random() * 600;
@@ -2091,6 +2131,10 @@
       farColors[i * 3] = 0.8 + warmth * 0.2;
       farColors[i * 3 + 1] = 0.85 + warmth * 0.1;
       farColors[i * 3 + 2] = 0.9 + (1 - warmth) * 0.1;
+      // navy variant, shown instead in light mode so these actually read against a light backdrop
+      farColorsLight[i * 3] = 0.1 + warmth * 0.08;
+      farColorsLight[i * 3 + 1] = 0.14 + warmth * 0.08;
+      farColorsLight[i * 3 + 2] = 0.36 + warmth * 0.14;
     }
     farGeo.setAttribute(
       "position",
@@ -2113,6 +2157,7 @@
     var bandGeo = new THREE_.BufferGeometry();
     var bandPositions = new Float32Array(bandCount * 3);
     var bandColors = new Float32Array(bandCount * 3);
+    var bandColorsLight = new Float32Array(bandCount * 3);
     var tilt = 0.6;
     for (var j = 0; j < bandCount; j++) {
       var a = Math.random() * Math.PI * 2;
@@ -2128,6 +2173,9 @@
       bandColors[j * 3] = 0.75 + tint * 0.25;
       bandColors[j * 3 + 1] = 0.78 + tint * 0.2;
       bandColors[j * 3 + 2] = 0.85 + (1 - tint) * 0.15;
+      bandColorsLight[j * 3] = 0.12 + tint * 0.08;
+      bandColorsLight[j * 3 + 1] = 0.16 + tint * 0.06;
+      bandColorsLight[j * 3 + 2] = 0.4 + tint * 0.12;
     }
     bandGeo.setAttribute(
       "position",
@@ -2169,8 +2217,15 @@
       depthWrite: false,
       sizeAttenuation: false,
     });
-    var accentStars = new THREE_.Points(accentGeo, accentMat);
+    accentStars = new THREE_.Points(accentGeo, accentMat);
     scene.add(accentStars);
+
+    bgStarColorSets = {
+      farDark: farColors,
+      farLight: farColorsLight,
+      bandDark: bandColors,
+      bandLight: bandColorsLight,
+    };
   }
 
   function buildPoints() {
@@ -2683,6 +2738,7 @@
     legendToggle.addEventListener("click", function () {
       var open = legendEl.classList.toggle("open");
       legendToggle.setAttribute("aria-expanded", String(open));
+      playClickSound();
       updateLegendHoverChip();
       updateLegendChipHighlight();
     });
@@ -2799,6 +2855,7 @@
             "aria-pressed",
             String(state.activeCats[entry.catId]),
           );
+          playClickSound();
           refreshPointAttributes();
         }
       }
@@ -2816,9 +2873,11 @@
     }
 
     closeAllBtn.addEventListener("click", function () {
+      playClickSound();
       setAllCats(false);
     });
     selectAllBtn.addEventListener("click", function () {
+      playClickSound();
       setAllCats(true);
     });
   }
@@ -2950,6 +3009,7 @@
     .parentNode.addEventListener("click", function () {
       searchWrap.classList.add("open");
       searchInput.focus();
+      playClickSound();
     });
   searchInput.addEventListener("focus", function () {
     searchWrap.classList.add("open");
@@ -2993,6 +3053,7 @@
     localStorage.setItem(MUTE_KEY, state.muted ? "1" : "0");
     paintMuteBtn();
     if (masterGain) masterGain.gain.value = state.muted ? 0 : 1;
+    playClickSound();
   });
 
   /* settings panel */
@@ -3002,6 +3063,7 @@
     var open = settingsPanel.classList.toggle("open");
     settingsBtn.setAttribute("aria-expanded", String(open));
     settingsPanel.setAttribute("aria-hidden", String(!open));
+    playClickSound();
     if (open) hideProfile();
   });
   document.addEventListener("click", function (e) {
@@ -3021,6 +3083,7 @@
     function toggle() {
       checked = !checked;
       el.setAttribute("aria-checked", String(checked));
+      playClickSound();
       onChange(checked);
     }
     el.addEventListener("click", toggle);
@@ -3072,6 +3135,22 @@
       dot.style.background = cssVar(CATEGORIES[i].color);
     });
 
+    if (bgStarColorSets && backgroundStars && milkyWayBand) {
+      var isLight = document.body.getAttribute("data-theme") === "light";
+      var farAttr = backgroundStars.geometry.attributes.color;
+      farAttr.array.set(
+        isLight ? bgStarColorSets.farLight : bgStarColorSets.farDark,
+      );
+      farAttr.needsUpdate = true;
+      var bandAttr = milkyWayBand.geometry.attributes.color;
+      bandAttr.array.set(
+        isLight ? bgStarColorSets.bandLight : bgStarColorSets.bandDark,
+      );
+      bandAttr.needsUpdate = true;
+      if (accentStars)
+        accentStars.material.color.set(isLight ? 0x1f2b55 : 0xffffff);
+    }
+
     needsRender = true;
   }
 
@@ -3079,6 +3158,7 @@
   var listBtn = $("list-toggle-btn");
   var listView = $("list-view");
   listBtn.addEventListener("click", function () {
+    playClickSound();
     toggleListView();
   });
 
@@ -3302,6 +3382,7 @@
             enterBtn.addEventListener("click", function handleEnter() {
               enterBtn.removeEventListener("click", handleEnter); // one shot — no double-firing the warp
               enterBtn.disabled = true;
+              playSelectSound();
               warpIntoMap();
             });
           }
