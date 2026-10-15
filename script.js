@@ -1897,7 +1897,7 @@
     state.activeCats[c.id] = true;
   });
 
-  // ---- space-themed sound fx — all synthesised with Web Audio, no mp3s to ship ----
+  // ---- space-themed sound fx — synthesised with Web Audio, background hum is a looped mp3 ----
   var MUTE_KEY = "signals-muted";
   state.muted = localStorage.getItem(MUTE_KEY) === "1";
 
@@ -1934,60 +1934,74 @@
     });
   }
 
-  // near-silent background drone, peaks well under the chimes
+  // hum.mp3 itself is mostly sub-bass (under ~100Hz), which laptop/phone speakers barely
+  // reproduce — this curve adds a bit of upper-harmonic "grit" so it's actually audible on
+  // small speakers instead of just inaudibly playing
+  function makeHumSaturationCurve() {
+    var n = 1024;
+    var curve = new Float32Array(n);
+    for (var i = 0; i < n; i++) {
+      var x = (i / (n - 1)) * 2 - 1;
+      curve[i] = Math.tanh(x * 5.5);
+    }
+    return curve;
+  }
+
+  // background hum, looped from hum.mp3, faded in quiet — plays through a plain <audio> element
+  // (not fetch+decodeAudioData) so it still works when the page is opened straight from disk
   var ambientHumStarted = false;
   function startAmbientHum() {
     if (ambientHumStarted || !audioCtx) return;
     ambientHumStarted = true;
+    try {
+      var humEl = new Audio("hum.mp3");
+      humEl.loop = true;
+      humEl.preload = "auto";
+      var src = audioCtx.createMediaElementSource(humEl);
+      var shaper = audioCtx.createWaveShaper();
+      shaper.curve = makeHumSaturationCurve();
+      shaper.oversample = "4x";
+      var humGain = audioCtx.createGain();
+      humGain.gain.value = 0.0001;
+      src.connect(shaper);
+      shaper.connect(humGain);
+      humGain.connect(masterGain);
 
-    var humGain = audioCtx.createGain();
-    humGain.gain.value = 0.0001;
-    var filter = audioCtx.createBiquadFilter();
-    filter.type = "lowpass";
-    filter.frequency.value = 420;
-    humGain.connect(filter);
-    filter.connect(masterGain);
+      var playPromise = humEl.play();
+      if (playPromise && playPromise.catch) {
+        playPromise.catch(function (err) {
+          console.warn("SIGNALS: background hum couldn't start", err);
+        });
+      }
 
-    [55, 55.4].forEach(function (freq) {
-      var osc = audioCtx.createOscillator();
-      osc.type = "sine";
-      osc.frequency.value = freq;
-      osc.connect(humGain);
-      osc.start();
-    });
-
-    var lfo = audioCtx.createOscillator();
-    var lfoGain = audioCtx.createGain();
-    lfo.frequency.value = 0.045;
-    lfoGain.gain.value = 0.005;
-    lfo.connect(lfoGain);
-    lfoGain.connect(humGain.gain);
-    lfo.start();
-
-    var t0 = audioCtx.currentTime;
-    humGain.gain.cancelScheduledValues(t0);
-    humGain.gain.setValueAtTime(0.0001, t0);
-    humGain.gain.linearRampToValueAtTime(0.016, t0 + 4.5);
+      var t0 = audioCtx.currentTime;
+      humGain.gain.cancelScheduledValues(t0);
+      humGain.gain.setValueAtTime(0.0001, t0);
+      humGain.gain.linearRampToValueAtTime(0.2, t0 + 4.5);
+    } catch (err) {
+      console.warn("SIGNALS: background hum setup failed", err);
+      ambientHumStarted = false;
+    }
   }
 
   function playHoverSound() {
-    playChime(1760, 0.12, 0.05);
+    playChime(1760, 0.09, 0.014);
   } // one quick twinkly tick (A6)
   function playSelectSound() {
     // little ascending sparkle — C E G C, like a magic "ding!"
     [1046.5, 1318.5, 1568, 2093].forEach(function (freq, i) {
-      playChime(freq, 0.22, 0.07, i * 0.045);
+      playChime(freq, 0.16, 0.02, i * 0.045);
     });
   }
   function playCloseSound() {
     // same sparkle played back down and softer, stepping back out of focus
     [1568, 1318.5, 1046.5, 784].forEach(function (freq, i) {
-      playChime(freq, 0.2, 0.05, i * 0.04);
+      playChime(freq, 0.14, 0.014, i * 0.04);
     });
   }
   // generic short, neutral tick for ordinary UI clicks (toggles, buttons, filters) —
   function playClickSound() {
-    playChime(1318.5, 0.1, 0.045);
+    playChime(1318.5, 0.07, 0.011);
   }
 
   // browsers won't let any sound play until there's been a real click/tap/keypress —
@@ -2245,7 +2259,7 @@
       colors[i * 3] = c.r;
       colors[i * 3 + 1] = c.g;
       colors[i * 3 + 2] = c.b;
-      sizes[i] = 6 + Math.min(node.degree, 6) * 1.6;
+      sizes[i] = 6 + node.degree * 1.1;
       highlight[i] = 0;
       visible[i] = 1;
       node._idx = i;
