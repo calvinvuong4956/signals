@@ -2603,10 +2603,79 @@
     return best;
   }
 
+  // ========================================
+  // CREATION MODE: MOVE INDIVIDUAL STARS
+  // ========================================
+
+  function moveStarTo(node, newPosition) {
+    // Update the stored 3D position.
+    layout[node.id].copy(newPosition);
+
+    // Update the visible star.
+    var pointPositions = pointCloud.geometry.attributes.position;
+
+    pointPositions.setXYZ(
+      node._idx,
+      newPosition.x,
+      newPosition.y,
+      newPosition.z,
+    );
+
+    pointPositions.needsUpdate = true;
+    pointCloud.geometry.computeBoundingSphere();
+
+    // Update existing connections attached to this star.
+    var linePositions = lineBase.geometry.attributes.position;
+
+    EDGES.forEach(function (edge, index) {
+      if (edge.a !== node.id && edge.b !== node.id) return;
+
+      var a = layout[edge.a];
+      var b = layout[edge.b];
+
+      linePositions.setXYZ(index * 2, a.x, a.y, a.z);
+      linePositions.setXYZ(index * 2 + 1, b.x, b.y, b.z);
+    });
+
+    linePositions.needsUpdate = true;
+    lineBase.geometry.computeBoundingSphere();
+
+    // Keep highlighted connections in sync.
+    updateHighlightLines();
+    lineHighlight.geometry.computeBoundingSphere();
+
+    if (state.focusMode) {
+      updateFocusPivot();
+      updateConnLabels();
+    }
+
+    needsRender = true;
+  }
+
   function attachPointerHandlers(el) {
     // Tracks what the current mouse drag is doing.
     var dragInteraction = "rotate";
     var draggedStar = null;
+    // 3D dragging helpers
+    var dragRaycaster = new THREE_.Raycaster();
+    var dragPlane = new THREE_.Plane();
+    var dragIntersection = new THREE_.Vector3();
+    var dragOffset = new THREE_.Vector3();
+    var dragWorldPosition = new THREE_.Vector3();
+    var dragLocalPosition = new THREE_.Vector3();
+    var dragCameraDirection = new THREE_.Vector3();
+
+    function updateDragRay(e) {
+      var rect = el.getBoundingClientRect();
+
+      var mouse = new THREE_.Vector2(
+        ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        -((e.clientY - rect.top) / rect.height) * 2 + 1,
+      );
+
+      camera.updateMatrixWorld();
+      dragRaycaster.setFromCamera(mouse, camera);
+    }
     // grabbing the tooltip once so we're not doing getElementById every mousemove, ya feel
     var tooltipEl = document.getElementById("node-tooltip");
     function hideTooltip() {
@@ -2639,6 +2708,31 @@
           dragInteraction = "star";
           draggedStar = hit;
 
+          // Find the star's current position in world space.
+          constellation.updateMatrixWorld(true);
+
+          dragWorldPosition
+            .copy(layout[hit.id])
+            .applyMatrix4(constellation.matrixWorld);
+
+          // Create a plane through the star, facing the camera.
+          camera.getWorldDirection(dragCameraDirection);
+
+          dragPlane.setFromNormalAndCoplanarPoint(
+            dragCameraDirection,
+            dragWorldPosition,
+          );
+
+          // Calculate the offset so the star doesn't jump
+          // when you begin dragging.
+          updateDragRay(e);
+
+          if (dragRaycaster.ray.intersectPlane(dragPlane, dragIntersection)) {
+            dragOffset.copy(dragWorldPosition).sub(dragIntersection);
+          } else {
+            dragOffset.set(0, 0, 0);
+          }
+
           console.log("STAR DETECTED:", hit.name);
         } else {
           console.log("EMPTY SPACE DETECTED");
@@ -2664,16 +2758,25 @@
         if (pointer.moved) {
           console.log("DRAG TYPE:", dragInteraction);
           if (dragInteraction === "star" && draggedStar) {
-            // CREATION MODE: STAR INTERACTION
-            // Placeholder for actual star movement.
+            // Convert cursor position into a 3D ray.
+            updateDragRay(e);
 
-            console.log(
-              "Dragging star:",
-              draggedStar.name,
-              "Mouse:",
-              e.clientX,
-              e.clientY,
-            );
+            // Find where the ray intersects the star's drag plane.
+            if (dragRaycaster.ray.intersectPlane(dragPlane, dragIntersection)) {
+              // Apply the initial offset.
+              dragWorldPosition.copy(dragIntersection).add(dragOffset);
+
+              // Convert world coordinates back into
+              // the constellation's local coordinates.
+              constellation.updateMatrixWorld(true);
+
+              dragLocalPosition.copy(
+                constellation.worldToLocal(dragWorldPosition.clone()),
+              );
+
+              // Move the actual star.
+              moveStarTo(draggedStar, dragLocalPosition);
+            }
 
             el.style.cursor = "grabbing";
           } else {
@@ -2818,7 +2921,12 @@
   /* ---------------- render loop (dirty-flag gated) ---------------- */
   function tick() {
     raf = requestAnimationFrame(tick);
-    if (ambientEnabled && !state.focusMode && !state.hoveredId) {
+    if (
+      ambientEnabled &&
+      !state.focusMode &&
+      !state.hoveredId &&
+      !pointer.active
+    ) {
       constellation.rotation.y += 0.0003; // calvin slowed this way down + made it pause on hover, way easier to read names now
       needsRender = true;
     }
