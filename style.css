@@ -458,6 +458,15 @@ input:focus-visible,
   .legend.open .legend-panel {
     max-width: 180px;
   }
+  .join-btn-label {
+    display: none;
+  }
+  .join-btn {
+    width: 38px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 50%;
+  }
 }
 
 /* ---------- hint, bottom-right ---------- */
@@ -516,8 +525,7 @@ body.focus-active .legend,
 body.focus-active .hint,
 body.focus-active .search-wrap,
 body.focus-active #settings-btn,
-body.focus-active #list-toggle-btn,
-body.focus-active #mute-btn {
+body.focus-active #list-toggle-btn {
   display: none;
 }
 body.list-active .legend,
@@ -557,6 +565,31 @@ body.list-active .hint {
   color: var(--text-dim);
   font-family: "Arimo", sans-serif;
   font-weight: 500;
+}
+.panel h3.settings-section-heading {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.settings-logout-btn {
+  flex: none;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+  font-family: "Montserrat", sans-serif;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.settings-logout-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
 }
 .row {
   display: flex;
@@ -1026,6 +1059,293 @@ body.list-active .hint {
   border-color: var(--accent);
   color: var(--accent);
   font-weight: 600;
+}
+
+/* ---------- "Join the Constellation" button + modal ---------- */
+/* icon-only pill by default — hovering (or keyboard focus) extends it to
+   reveal the label, so it stays out of the way until you actually need it.
+   the slot reserves a fixed 38px in the topbar's flex row so expanding
+   never reflows its siblings. the clickable <button> itself is ALSO always
+   a fixed 38px — only a purely decorative, pointer-events:none background
+   pill grows behind it, and the label is an absolutely-positioned overlay.
+   that means the real hit-area never changes size mid-interaction, which
+   matters: a size change landing between mousedown and mouseup can make a
+   browser's hit-test disagree about the target at each moment and swallow
+   the click outright — tested and confirmed this bites real clicks, not
+   just a test-tooling quirk. */
+.join-btn-slot {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  flex: none;
+}
+.join-btn {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  width: 38px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  font-family: "Montserrat", sans-serif;
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  z-index: 1;
+}
+.join-btn-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 38px;
+  width: 38px;
+  border-radius: 19px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  pointer-events: none;
+  z-index: -1;
+  transition:
+    width 0.22s ease,
+    border-color 0.15s ease;
+}
+.join-btn svg {
+  flex: none;
+  color: var(--accent);
+  position: relative;
+  z-index: 1;
+}
+.join-btn-label {
+  position: absolute;
+  left: 38px;
+  top: 0;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  padding-left: 0;
+  white-space: nowrap;
+  transition:
+    max-width 0.22s ease,
+    opacity 0.18s ease,
+    padding-left 0.22s ease;
+}
+/* :focus-within deliberately left out — it fires the instant a button is
+   pressed (native mousedown-focus behavior), which would re-trigger this
+   same expansion mid-click. :hover (already-settled well before a click)
+   and :focus-visible (keyboard tabbing, not mouse-triggered) don't have
+   that problem. */
+.join-btn:hover,
+.join-btn:focus-visible {
+  z-index: 25;
+}
+.join-btn:hover .join-btn-bg,
+.join-btn:focus-visible .join-btn-bg {
+  width: 182px;
+  border-color: var(--accent);
+}
+.join-btn:hover .join-btn-label,
+.join-btn:focus-visible .join-btn-label {
+  max-width: 220px;
+  opacity: 1;
+  padding-left: 7px;
+}
+.join-btn:active {
+  transform: scale(0.96);
+}
+
+.join-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 6, 10, 0.6);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+[data-theme="light"] .join-overlay {
+  background: rgba(30, 32, 36, 0.35);
+}
+.join-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.join-modal {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  margin: 24px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 28px 26px 24px;
+  transform: translateY(10px) scale(0.98);
+  opacity: 0;
+  transition:
+    transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.22s ease;
+}
+.join-overlay.open .join-modal {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+.join-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+}
+.join-close:hover {
+  color: var(--text);
+  background: var(--bg-elevated-2);
+}
+
+.join-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+}
+
+.join-astronaut-wrap {
+  width: 148px;
+  height: 148px;
+  margin-bottom: 8px;
+  flex: none;
+}
+.join-astronaut-wrap canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+}
+
+.join-title {
+  margin: 4px 0 2px;
+  font-size: 19px;
+  font-family: "Jura", sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.join-sub {
+  margin: 0 0 18px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.join-primary {
+  width: 100%;
+  height: 42px;
+  border-radius: 21px;
+  background: var(--accent);
+  border: none;
+  color: #15161a;
+  font-family: "Montserrat", sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform 0.1s ease,
+    filter 0.15s ease;
+}
+.join-primary:hover {
+  filter: brightness(1.08);
+}
+.join-primary:active {
+  transform: scale(0.98);
+}
+.join-primary:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.join-link {
+  margin-top: 12px;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-family: "Montserrat", sans-serif;
+  font-size: 12.5px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.join-link:hover {
+  color: var(--text);
+}
+
+form.join-step {
+  align-items: stretch;
+  text-align: left;
+  width: 100%;
+}
+form.join-step .join-title {
+  text-align: center;
+}
+.join-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--text-dim);
+  font-family: "Arimo", sans-serif;
+}
+.join-field input,
+.join-field select,
+.join-field textarea {
+  font-family: "Montserrat", sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 11px;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.15s ease;
+}
+.join-field input:focus,
+.join-field select:focus,
+.join-field textarea:focus {
+  border-color: var(--accent);
+}
+
+.join-error {
+  margin: -2px 0 12px;
+  font-size: 12px;
+  color: #e0665c;
+  text-align: center;
+}
+
+#join-done-sub {
+  word-break: break-word;
 }
 
 @media (prefers-reduced-motion: reduce) {

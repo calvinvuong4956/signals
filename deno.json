@@ -1,8 +1,11 @@
 {
-  "tasks":{"start":"deno run --allow-net --allow-read jsr:@std/http/file-server"},
+  "tasks": {
+    "start": "deno run --allow-net --allow-read --allow-write --allow-env --unstable-kv server.ts"
+  },
   "deploy": {
     "org": "228428",
-    "app": "aliens-signals"
+    "app": "aliens-signals",
+    "entrypoint": "server.ts"
   }
 }
 

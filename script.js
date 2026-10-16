@@ -1934,21 +1934,10 @@
     });
   }
 
-  // hum.mp3 itself is mostly sub-bass (under ~100Hz), which laptop/phone speakers barely
-  // reproduce — this curve adds a bit of upper-harmonic "grit" so it's actually audible on
-  // small speakers instead of just inaudibly playing
-  function makeHumSaturationCurve() {
-    var n = 1024;
-    var curve = new Float32Array(n);
-    for (var i = 0; i < n; i++) {
-      var x = (i / (n - 1)) * 2 - 1;
-      curve[i] = Math.tanh(x * 5.5);
-    }
-    return curve;
-  }
-
   // background hum, looped from hum.mp3, faded in quiet — plays through a plain <audio> element
-  // (not fetch+decodeAudioData) so it still works when the page is opened straight from disk
+  // (not fetch+decodeAudioData) so it still works when the page is opened straight from disk.
+  // the file's own mix now carries the harmonics it needs to read on small speakers, so this is
+  // just a gain node, nothing fancier.
   var ambientHumStarted = false;
   function startAmbientHum() {
     if (ambientHumStarted || !audioCtx) return;
@@ -1958,13 +1947,9 @@
       humEl.loop = true;
       humEl.preload = "auto";
       var src = audioCtx.createMediaElementSource(humEl);
-      var shaper = audioCtx.createWaveShaper();
-      shaper.curve = makeHumSaturationCurve();
-      shaper.oversample = "4x";
       var humGain = audioCtx.createGain();
       humGain.gain.value = 0.0001;
-      src.connect(shaper);
-      shaper.connect(humGain);
+      src.connect(humGain);
       humGain.connect(masterGain);
 
       var playPromise = humEl.play();
@@ -1977,7 +1962,7 @@
       var t0 = audioCtx.currentTime;
       humGain.gain.cancelScheduledValues(t0);
       humGain.gain.setValueAtTime(0.0001, t0);
-      humGain.gain.linearRampToValueAtTime(0.2, t0 + 4.5);
+      humGain.gain.linearRampToValueAtTime(0.18, t0 + 4.5);
     } catch (err) {
       console.warn("SIGNALS: background hum setup failed", err);
       ambientHumStarted = false;
@@ -1985,23 +1970,23 @@
   }
 
   function playHoverSound() {
-    playChime(1760, 0.09, 0.014);
+    playChime(1760, 0.07, 0.002);
   } // one quick twinkly tick (A6)
   function playSelectSound() {
     // little ascending sparkle — C E G C, like a magic "ding!"
     [1046.5, 1318.5, 1568, 2093].forEach(function (freq, i) {
-      playChime(freq, 0.16, 0.02, i * 0.045);
+      playChime(freq, 0.12, 0.003, i * 0.045);
     });
   }
   function playCloseSound() {
     // same sparkle played back down and softer, stepping back out of focus
     [1568, 1318.5, 1046.5, 784].forEach(function (freq, i) {
-      playChime(freq, 0.14, 0.014, i * 0.04);
+      playChime(freq, 0.1, 0.002, i * 0.04);
     });
   }
   // generic short, neutral tick for ordinary UI clicks (toggles, buttons, filters) —
   function playClickSound() {
-    playChime(1318.5, 0.07, 0.011);
+    playChime(1318.5, 0.05, 0.0016);
   }
 
   // browsers won't let any sound play until there's been a real click/tap/keypress —
@@ -2112,6 +2097,18 @@
 
     constellation = new THREE_.Group();
     scene.add(constellation);
+
+    // the node points/lines are unlit shaders (color comes straight from the
+    // attribute, no lighting needed), but the astronaut model uses normal PBR
+    // materials — without lights it renders almost black, so give it just enough
+    // to read clearly without washing out the rest of the scene
+    scene.add(new THREE_.AmbientLight(0xffffff, 0.8));
+    var astronautKeyLight = new THREE_.DirectionalLight(0xffffff, 1.1);
+    astronautKeyLight.position.set(40, 60, 80);
+    scene.add(astronautKeyLight);
+    var astronautRimLight = new THREE_.DirectionalLight(0x8fb3ff, 0.6);
+    astronautRimLight.position.set(-50, -20, -40);
+    scene.add(astronautRimLight);
 
     buildBackgroundStars(); // deep-space backdrop, sits behind everything, not inside the constellation group
     buildPoints();
@@ -2261,7 +2258,9 @@
       colors[i * 3 + 2] = c.b;
       sizes[i] = 6 + node.degree * 1.1;
       highlight[i] = 0;
-      visible[i] = 1;
+      // member nodes get rendered as the floating astronaut model instead of a flat dot —
+      // keep the point in the buffer (picking/lines/legend all key off it) but invisible
+      visible[i] = node.isMember ? 0 : 1;
       node._idx = i;
     });
 
@@ -2713,6 +2712,26 @@
       needsRender = true;
     }
 
+    // free-floating drift for every joined member's astronaut — gentle, uneven
+    // movement on all three axes plus a slow tilt wobble, so it reads as actually
+    // floating in zero gravity rather than bobbing on a fixed rail
+    var memberIds = Object.keys(memberAstronauts);
+    if (memberIds.length) {
+      var now = performance.now() * 0.001;
+      memberIds.forEach(function (id) {
+        var m = memberAstronauts[id];
+        m.obj.position.y = m.base.y + Math.sin(now * 0.55 + m.phase) * 3.4;
+        m.obj.position.x = m.base.x + Math.sin(now * 0.33 + m.phaseX) * 1.8;
+        m.obj.position.z = m.base.z + Math.cos(now * 0.41 + m.phaseZ) * 1.8;
+        if (!reduceMotion) {
+          m.obj.rotation.y += 0.01 * m.spin;
+          m.obj.rotation.z = Math.sin(now * 0.3 + m.tiltPhase) * 0.12;
+          m.obj.rotation.x = Math.sin(now * 0.22 + m.tiltPhase * 1.3) * 0.08;
+        }
+      });
+      needsRender = true;
+    }
+
     var posDiff = constellation.position.distanceTo(targetGroupPos);
     var zDiff = Math.abs(camera.position.z - targetCameraZ);
     var yDiff = Math.abs(camera.position.y - targetCameraY);
@@ -3052,24 +3071,6 @@
       visibleCount + " / " + NODES.length + " practitioners";
   }
 
-  /* mute button — flips the master gain and remembers your choice for next time */
-  var muteBtn = $("mute-btn");
-  var muteIconOn = $("mute-icon-on");
-  var muteIconOff = $("mute-icon-off");
-  function paintMuteBtn() {
-    muteBtn.setAttribute("aria-pressed", String(state.muted));
-    muteIconOn.style.display = state.muted ? "none" : "";
-    muteIconOff.style.display = state.muted ? "" : "none";
-  }
-  paintMuteBtn();
-  muteBtn.addEventListener("click", function () {
-    state.muted = !state.muted;
-    localStorage.setItem(MUTE_KEY, state.muted ? "1" : "0");
-    paintMuteBtn();
-    if (masterGain) masterGain.gain.value = state.muted ? 0 : 1;
-    playClickSound();
-  });
-
   /* settings panel */
   var settingsBtn = $("settings-btn");
   var settingsPanel = $("settings-panel");
@@ -3118,6 +3119,14 @@
   wireSwitch($("motion-switch"), reduceMotion, function (isReduced) {
     ambientEnabled = !isReduced;
     needsRender = true;
+  });
+
+  // sound now lives here instead of a standalone topbar icon — same mute
+  // state/localStorage as before, just surfaced as a switch
+  wireSwitch($("sound-switch"), !state.muted, function (isOn) {
+    state.muted = !isOn;
+    localStorage.setItem(MUTE_KEY, state.muted ? "1" : "0");
+    if (masterGain) masterGain.gain.value = state.muted ? 0 : 1;
   });
 
   function recolorForTheme() {
@@ -3227,6 +3236,578 @@
       grid.appendChild(group);
     });
   }
+
+  /* =======================================================================
+     "Join the Constellation" — sign up / log in (small Deno KV-backed API,
+     see server.ts), an astronaut model standing in for "you", and the
+     joined org becoming a real new node on the map.
+     ======================================================================= */
+  var JOIN_TOKEN_KEY = "signals-join-token";
+  var joinedNode = null; // the live NODES entry for whoever is logged in, once known
+
+  // ---- shared astronaut model used for every member's node in the live map ----
+  // loaded once and cloned per node, instead of each join re-downloading the glb
+  var astronautTemplate = null; // the loaded, centered, unit-scaled THREE.Object3D
+  var astronautLoadStarted = false;
+  var pendingAstronautNodeIds = []; // ids waiting on the template if a join happens before it's ready
+  var memberAstronauts = {}; // id -> { obj, base, phase*, spin, tiltPhase }
+
+  function spawnAstronautForNode(id) {
+    if (!astronautTemplate || !nodeById[id] || memberAstronauts[id]) return;
+    var THREE_ = window.THREE;
+    var pos = layout[id];
+    var group = astronautTemplate.clone(true);
+    group.position.copy(pos);
+    constellation.add(group);
+    memberAstronauts[id] = {
+      obj: group,
+      base: pos.clone(),
+      phase: Math.random() * Math.PI * 2,
+      phaseX: Math.random() * Math.PI * 2,
+      phaseZ: Math.random() * Math.PI * 2,
+      tiltPhase: Math.random() * Math.PI * 2,
+      spin: 0.2 + Math.random() * 0.12,
+    };
+    needsRender = true;
+  }
+
+  function loadAstronautTemplate() {
+    if (astronautLoadStarted) return;
+    astronautLoadStarted = true;
+    var THREE_ = window.THREE;
+    if (!window.THREE.GLTFLoader) return;
+    var loader = new window.THREE.GLTFLoader();
+    loader.load(
+      "astronaut.glb",
+      function (gltf) {
+        var model = gltf.scene;
+        var box = new THREE_.Box3().setFromObject(model);
+        var size = new THREE_.Vector3();
+        box.getSize(size);
+        var center = new THREE_.Vector3();
+        box.getCenter(center);
+        // sized to read clearly next to the other nodes without dwarfing the constellation
+        var scale = 30 / Math.max(size.x, size.y, size.z, 0.0001);
+        var rig = new THREE_.Group();
+        model.scale.setScalar(scale);
+        model.position.sub(center.multiplyScalar(scale));
+        rig.add(model);
+        astronautTemplate = rig;
+        pendingAstronautNodeIds.forEach(spawnAstronautForNode);
+        pendingAstronautNodeIds = [];
+      },
+      undefined,
+      function (err) {
+        console.warn("SIGNALS: couldn't load astronaut.glb for the map", err);
+      },
+    );
+  }
+
+  function addMemberNodeToScene(apiNode) {
+    var THREE_ = window.THREE;
+    var id = apiNode.id;
+    if (nodeById[id]) return nodeById[id]; // already added this session
+
+    var node = {
+      id: id,
+      name: apiNode.name,
+      category: CATEGORIES.some(function (c) {
+        return c.id === apiNode.category;
+      })
+        ? apiNode.category
+        : CATEGORIES[0].id,
+      role: apiNode.role || "Member organisation",
+      description: apiNode.description || "",
+      url: apiNode.url || null,
+      contact: apiNode.contact || "",
+      tag2: "Member",
+      connections: [],
+      degree: 0,
+      linked: new Set(),
+      isMember: true,
+    };
+    NODES.push(node);
+    nodeById[id] = node;
+
+    // the astronaut is you — it sits at the heart of the constellation rather than
+    // tucked into a category cluster, so it reads as the one node that's "the user"
+    // among the 136 orgs. only this node moves in; nothing else reshuffles.
+    var jitter = 10;
+    var pos = new THREE_.Vector3(
+      (Math.random() - 0.5) * jitter,
+      (Math.random() - 0.5) * jitter * 0.6,
+      (Math.random() - 0.5) * jitter,
+    );
+    for (var iter = 0; iter < 40; iter++) {
+      for (var k = 0; k < NODES.length - 1; k++) {
+        var other = NODES[k];
+        var op = layout[other.id];
+        if (!op) continue;
+        var d = pos.distanceTo(op);
+        if (d < 6 && d > 0.0001) {
+          var dir = new THREE_.Vector3()
+            .subVectors(pos, op)
+            .normalize()
+            .multiplyScalar((6 - d) * 0.5);
+          pos.add(dir);
+        }
+      }
+    }
+    layout[id] = pos;
+
+    // rebuild the point cloud / line buffers with the extra node — cheap, and
+    // only happens on a join, never per frame
+    constellation.remove(pointCloud);
+    pointCloud.geometry.dispose();
+    pointCloud.material.dispose();
+    constellation.remove(lineBase);
+    lineBase.geometry.dispose();
+    lineBase.material.dispose();
+    constellation.remove(lineHighlight);
+    lineHighlight.geometry.dispose();
+    lineHighlight.material.dispose();
+    buildPoints();
+    buildLines();
+
+    var chipEntry = categoryChipEls.filter(function (entry) {
+      return entry.catId === node.category;
+    })[0];
+    if (chipEntry) {
+      var countEl = chipEntry.chip.querySelector(".chip-count");
+      if (countEl) countEl.textContent = String(Number(countEl.textContent) + 1);
+    }
+    updateNodeCountLabel();
+
+    // the floating astronaut model stands in for the dot — load it once, then spawn
+    // (or queue the spawn if the model's still loading its first time around)
+    if (!astronautTemplate) {
+      pendingAstronautNodeIds.push(id);
+      loadAstronautTemplate();
+    } else {
+      spawnAstronautForNode(id);
+    }
+
+    needsRender = true;
+    return node;
+  }
+
+  // small, self-contained three.js scene for the astronaut preview inside the modal —
+  // separate from the main map's renderer/camera entirely
+  function createAstronautPreview(canvas) {
+    var THREE_ = window.THREE;
+    var renderer = new THREE_.WebGLRenderer({
+      canvas: canvas,
+      alpha: true,
+      antialias: true,
+    });
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    renderer.setPixelRatio(dpr);
+    var scene = new THREE_.Scene();
+    var camera = new THREE_.PerspectiveCamera(40, 1, 0.1, 50);
+    camera.position.set(0, 0.15, 3.1);
+
+    scene.add(new THREE_.AmbientLight(0xffffff, 0.9));
+    var key = new THREE_.DirectionalLight(0xffffff, 1.1);
+    key.position.set(2, 3, 4);
+    scene.add(key);
+    var rim = new THREE_.DirectionalLight(0x8fb3ff, 0.5);
+    rim.position.set(-3, -1, -2);
+    scene.add(rim);
+
+    var rig = new THREE_.Group();
+    scene.add(rig);
+
+    var raf = null;
+    function resize() {
+      var w = canvas.clientWidth || 148,
+        h = canvas.clientHeight || 148;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+    resize();
+    window.addEventListener("resize", resize);
+
+    function tick() {
+      raf = requestAnimationFrame(tick);
+      rig.rotation.y += 0.008;
+      renderer.render(scene, camera);
+    }
+    tick();
+
+    if (window.THREE.GLTFLoader) {
+      var loader = new window.THREE.GLTFLoader();
+      loader.load(
+        "astronaut.glb",
+        function (gltf) {
+          var model = gltf.scene;
+          var box = new THREE_.Box3().setFromObject(model);
+          var size = new THREE_.Vector3();
+          box.getSize(size);
+          var center = new THREE_.Vector3();
+          box.getCenter(center);
+          var scale = 1.7 / Math.max(size.x, size.y, size.z, 0.0001);
+          model.scale.setScalar(scale);
+          model.position.sub(center.multiplyScalar(scale));
+          rig.add(model);
+        },
+        undefined,
+        function (err) {
+          console.warn("SIGNALS: couldn't load astronaut.glb", err);
+        },
+      );
+    }
+
+    return function destroy() {
+      if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener("resize", resize);
+      renderer.dispose();
+    };
+  }
+
+  (function wireJoinFlow() {
+    var overlay = $("join-overlay");
+    var stepIntro = $("join-step-intro");
+    var stepForm = $("join-step-form");
+    var stepLogin = $("join-step-login");
+    var stepDone = $("join-step-done");
+    var joinBtn = $("join-btn");
+    if (!overlay || !joinBtn) return;
+
+    var sectorSelect = $("join-sector");
+    CATEGORIES.forEach(function (c) {
+      var opt = document.createElement("option");
+      opt.value = c.id;
+      opt.textContent = c.label;
+      sectorSelect.appendChild(opt);
+    });
+
+    // showcase convenience: picking a sector instantly fills in the rest of the
+    // form with a realistic example, so a live demo never has to pause and type
+    var DEMO_PRESETS = {
+      govtier: {
+        name: "Local Government Policy Forum",
+        role: "Intergovernmental advisory body",
+        website: "https://lgpf.org.au",
+        description:
+          "Coordinates policy positions between local councils and state government on shared service delivery.",
+      },
+      housing: {
+        name: "Melbourne Youth Housing Collective",
+        role: "Grassroots advocacy group",
+        website: "https://myhc.org.au",
+        description:
+          "A tenant-led collective campaigning for affordable youth housing and tenancy protections across inner Melbourne.",
+      },
+      media: {
+        name: "Independent Press Alliance",
+        role: "Media advocacy coalition",
+        website: "https://independentpress.org.au",
+        description:
+          "Campaigns for press freedom protections and sustainable funding models for local journalism.",
+      },
+      culture: {
+        name: "Southbank Arts Collective",
+        role: "Independent arts organisation",
+        website: "https://southbankarts.org.au",
+        description:
+          "A community-run gallery and studio space supporting emerging Melbourne artists through exhibitions and grants.",
+      },
+      welfare: {
+        name: "Fitzroy Community Support Network",
+        role: "Social welfare charity",
+        website: "https://fcsn.org.au",
+        description:
+          "Runs emergency relief, food security and casework programs for people experiencing hardship in inner Melbourne.",
+      },
+      business: {
+        name: "Victorian Small Business Alliance",
+        role: "Industry association",
+        website: "https://vsba.org.au",
+        description:
+          "Represents small and family businesses in policy consultations on tax, red tape and local procurement.",
+      },
+      education: {
+        name: "Digital Futures Learning Network",
+        role: "Education advocacy body",
+        website: "https://digitalfutures.edu.au",
+        description:
+          "Advocates for digital literacy curriculum reform in Victorian public schools.",
+      },
+      politics: {
+        name: "Melbourne Civic Policy Roundtable",
+        role: "Nonpartisan policy forum",
+        website: "https://mcpr.org.au",
+        description:
+          "Brings together researchers and practitioners to brief policymakers on emerging civic issues.",
+      },
+      innovation: {
+        name: "Greenlight Climate Tech Hub",
+        role: "Innovation incubator",
+        website: "https://greenlighthub.io",
+        description:
+          "Connects early-stage climate tech startups with policy makers and research institutions.",
+      },
+    };
+    var DEMO_FALLBACK = {
+      name: "New Member Organisation",
+      role: "Member organisation",
+      website: "https://example.org.au",
+      description:
+        "A newly joined organisation taking part in the SIGNALS network.",
+    };
+
+    sectorSelect.addEventListener("change", function () {
+      var preset = DEMO_PRESETS[sectorSelect.value] || DEMO_FALLBACK;
+      var stamp = Date.now().toString().slice(-5);
+      $("join-name").value = preset.name;
+      $("join-role").value = preset.role;
+      $("join-website").value = preset.website;
+      $("join-description").value = preset.description;
+      $("join-email").value =
+        preset.name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "")
+          .slice(0, 18) +
+        stamp +
+        "@demo.signals";
+      $("join-password").value = "signals2026";
+      playClickSound();
+    });
+
+    var previewDestroyers = [];
+    function startPreview(canvas) {
+      previewDestroyers.push(createAstronautPreview(canvas));
+    }
+    function stopPreviews() {
+      previewDestroyers.forEach(function (d) {
+        d();
+      });
+      previewDestroyers = [];
+    }
+
+    function showStep(step) {
+      [stepIntro, stepForm, stepLogin, stepDone].forEach(function (el) {
+        el.hidden = el !== step;
+      });
+    }
+
+    // logout now lives in the settings panel, not the topbar
+    var logoutBtn = $("settings-logout-btn");
+    var accountRow = $("account-row");
+    var accountHeading = $("account-section-heading");
+    var accountNodeName = $("account-node-name");
+
+    // single source of truth for the join-btn + settings "Account" section, so
+    // signup, login, reconnect-on-load and logout all leave the UI consistent
+    function updateJoinedUI() {
+      var labelEl = joinBtn.querySelector(".join-btn-label");
+      if (joinedNode) {
+        joinBtn.title = "Locate your node";
+        if (labelEl) labelEl.textContent = "Locate My Node";
+        if (accountRow) accountRow.hidden = false;
+        if (accountHeading) accountHeading.hidden = false;
+        if (accountNodeName) accountNodeName.textContent = joinedNode.name;
+      } else {
+        joinBtn.title = "Join the Constellation";
+        if (labelEl) labelEl.textContent = "Join the Constellation";
+        if (accountRow) accountRow.hidden = true;
+        if (accountHeading) accountHeading.hidden = true;
+      }
+    }
+
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", function () {
+        playClickSound();
+        var token = localStorage.getItem(JOIN_TOKEN_KEY);
+        localStorage.removeItem(JOIN_TOKEN_KEY);
+        joinedNode = null;
+        updateJoinedUI();
+        // the node itself stays on the map — it's real data now — this just signs
+        // this browser out so a different org can sign up or log in next
+        if (token) {
+          fetch("/api/logout", {
+            method: "POST",
+            headers: { authorization: "Bearer " + token },
+          }).catch(function () {});
+        }
+      });
+    }
+
+    function openOverlay(step) {
+      showStep(step || stepIntro);
+      overlay.classList.add("open");
+      overlay.setAttribute("aria-hidden", "false");
+      playClickSound();
+      if (step === stepDone) startPreview($("join-done-canvas"));
+      else if (!step || step === stepIntro) startPreview($("join-astronaut-canvas"));
+    }
+
+    function closeOverlay() {
+      overlay.classList.remove("open");
+      overlay.setAttribute("aria-hidden", "true");
+      stopPreviews();
+      playClickSound();
+    }
+
+    joinBtn.addEventListener("click", function () {
+      if (joinedNode) {
+        // already part of the network — jump straight to your own node
+        selectNode(joinedNode.id);
+        return;
+      }
+      openOverlay(stepIntro);
+    });
+    $("join-close").addEventListener("click", closeOverlay);
+    overlay.addEventListener("click", function (e) {
+      if (e.target === overlay) closeOverlay();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && overlay.classList.contains("open")) closeOverlay();
+    });
+
+    $("join-start-btn").addEventListener("click", function () {
+      playClickSound();
+      stopPreviews();
+      showStep(stepForm);
+    });
+    $("join-have-account-btn").addEventListener("click", function () {
+      playClickSound();
+      stopPreviews();
+      showStep(stepLogin);
+    });
+    $("join-form-back-btn").addEventListener("click", function () {
+      playClickSound();
+      showStep(stepIntro);
+      startPreview($("join-astronaut-canvas"));
+    });
+    $("login-back-btn").addEventListener("click", function () {
+      playClickSound();
+      showStep(stepIntro);
+      startPreview($("join-astronaut-canvas"));
+    });
+
+    function setJoined(token, apiNode) {
+      localStorage.setItem(JOIN_TOKEN_KEY, token);
+      joinedNode = addMemberNodeToScene(apiNode);
+      updateJoinedUI();
+    }
+
+    $("join-step-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var errEl = $("join-form-error");
+      errEl.hidden = true;
+      var submitBtn = $("join-submit-btn");
+      submitBtn.disabled = true;
+
+      fetch("/api/signup", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: $("join-name").value,
+          email: $("join-email").value,
+          password: $("join-password").value,
+          sector: sectorSelect.value,
+          role: $("join-role").value,
+          website: $("join-website").value,
+          description: $("join-description").value,
+        }),
+      })
+        .then(function (r) {
+          return r.json().then(function (body) {
+            if (!r.ok) throw new Error(body.error || "Something went wrong.");
+            return body;
+          });
+        })
+        .then(function (body) {
+          setJoined(body.token, body.node);
+          stopPreviews();
+          $("join-done-title").textContent = "Welcome, " + body.node.name;
+          $("join-done-sub").textContent =
+            "Your node is live on the constellation. Click below to find your spot.";
+          showStep(stepDone);
+          startPreview($("join-done-canvas"));
+        })
+        .catch(function (err) {
+          errEl.textContent = err.message;
+          errEl.hidden = false;
+        })
+        .finally(function () {
+          submitBtn.disabled = false;
+        });
+    });
+
+    $("join-step-login").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var errEl = $("login-form-error");
+      errEl.hidden = true;
+      var submitBtn = $("login-submit-btn");
+      submitBtn.disabled = true;
+
+      fetch("/api/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          email: $("login-email").value,
+          password: $("login-password").value,
+        }),
+      })
+        .then(function (r) {
+          return r.json().then(function (body) {
+            if (!r.ok) throw new Error(body.error || "Something went wrong.");
+            return body;
+          });
+        })
+        .then(function (body) {
+          setJoined(body.token, body.node);
+          stopPreviews();
+          $("join-done-title").textContent = "Welcome back, " + body.node.name;
+          $("join-done-sub").textContent = "Here's your spot on the constellation.";
+          showStep(stepDone);
+          startPreview($("join-done-canvas"));
+        })
+        .catch(function (err) {
+          errEl.textContent = err.message;
+          errEl.hidden = false;
+        })
+        .finally(function () {
+          submitBtn.disabled = false;
+        });
+    });
+
+    $("join-done-btn").addEventListener("click", function () {
+      playClickSound();
+      var id = joinedNode && joinedNode.id;
+      closeOverlay();
+      if (id) selectNode(id);
+    });
+
+    // quietly reconnect if this browser already joined before — waits for the
+    // 3D scene to actually exist first, since this can resolve before boot() does
+    function applyReconnectedNode(apiNode) {
+      if (!pointCloud || !constellation) {
+        setTimeout(function () {
+          applyReconnectedNode(apiNode);
+        }, 150);
+        return;
+      }
+      joinedNode = addMemberNodeToScene(apiNode);
+      updateJoinedUI();
+    }
+
+    var savedToken = localStorage.getItem(JOIN_TOKEN_KEY);
+    if (savedToken) {
+      fetch("/api/me", { headers: { authorization: "Bearer " + savedToken } })
+        .then(function (r) {
+          return r.ok ? r.json() : null;
+        })
+        .then(function (body) {
+          if (body && body.node) applyReconnectedNode(body.node);
+          else localStorage.removeItem(JOIN_TOKEN_KEY);
+        })
+        .catch(function () {});
+    }
+  })();
 
   // little starfield that plays behind the loading screen, warps out once the map's ready
   // stars light up starting from the centre and radiating outward, each one TWINKLING into

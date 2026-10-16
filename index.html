@@ -106,6 +106,33 @@
               autocomplete="off"
             />
           </div>
+          <div class="join-btn-slot">
+            <button
+              class="join-btn"
+              id="join-btn"
+              type="button"
+              title="Join the Constellation"
+            >
+              <span class="join-btn-bg" aria-hidden="true"></span>
+              <svg
+                viewBox="0 0 24 24"
+                width="15"
+                height="15"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="2.6" />
+                <path
+                  d="M12 2.5v4.2M12 17.3v4.2M4.1 4.1l2.97 2.97M16.93 16.93l2.97 2.97M2.5 12h4.2M17.3 12h4.2M4.1 19.9l2.97-2.97M16.93 7.07l2.97-2.97"
+                />
+              </svg>
+              <span class="join-btn-label">Join the Constellation</span>
+            </button>
+          </div>
           <button
             class="icon-btn"
             id="list-toggle-btn"
@@ -122,41 +149,6 @@
               <line x1="4" y1="6" x2="20" y2="6" />
               <line x1="4" y1="12" x2="20" y2="12" />
               <line x1="4" y1="18" x2="20" y2="18" />
-            </svg>
-          </button>
-          <!-- mute toggle — swaps between the two icons below, sound starts muted-state-aware on first click anywhere -->
-          <button
-            class="icon-btn"
-            id="mute-btn"
-            aria-pressed="false"
-            title="Mute sound"
-          >
-            <svg
-              id="mute-icon-on"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-              <path d="M15.54 8.46a5 5 0 010 7.07" />
-              <path d="M19.07 4.93a10 10 0 010 14.14" />
-            </svg>
-            <svg
-              id="mute-icon-off"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              style="display: none"
-            >
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-              <line x1="23" y1="9" x2="17" y2="15" />
-              <line x1="17" y1="9" x2="23" y2="15" />
             </svg>
           </button>
           <button
@@ -252,9 +244,36 @@
         </div>
         <div class="row">
           <div>
+            <div class="row-label">Sound</div>
+            <div class="row-sub">Ambient hum + interface chimes</div>
+          </div>
+          <div
+            class="switch"
+            id="sound-switch"
+            role="switch"
+            aria-checked="true"
+            tabindex="0"
+            aria-label="Toggle sound"
+          ></div>
+        </div>
+        <div class="row">
+          <div>
             <div class="row-label">Node size = connections</div>
             <div class="row-sub">Larger node, more links</div>
           </div>
+        </div>
+
+        <h3 class="settings-section-heading" id="account-section-heading" hidden>
+          Account
+        </h3>
+        <div class="row" id="account-row" hidden>
+          <div>
+            <div class="row-label">Signed in</div>
+            <div class="row-sub" id="account-node-name"></div>
+          </div>
+          <button class="settings-logout-btn" id="settings-logout-btn" type="button">
+            Log out
+          </button>
         </div>
       </section>
 
@@ -309,9 +328,139 @@
       <div id="list-view">
         <div class="list-grid" id="list-grid"></div>
       </div>
+
+      <!-- "Join the Constellation" — sign up / log in, personal node added to the map,
+           astronaut model as the visual stand-in for "you" -->
+      <div class="join-overlay" id="join-overlay" aria-hidden="true">
+        <div
+          class="join-modal"
+          id="join-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="join-title"
+        >
+          <button class="join-close" id="join-close" aria-label="Close">
+            <svg
+              viewBox="0 0 24 24"
+              width="15"
+              height="15"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+
+          <section class="join-step" id="join-step-intro">
+            <div class="join-astronaut-wrap">
+              <canvas id="join-astronaut-canvas"></canvas>
+            </div>
+            <h2 class="join-title" id="join-title">Join the Constellation</h2>
+            <p class="join-sub">
+              This is you. Sign up to add your organisation as its own node
+              and take your spot in the network.
+            </p>
+            <button class="join-primary" id="join-start-btn" type="button">
+              Get started
+            </button>
+            <button class="join-link" id="join-have-account-btn" type="button">
+              I already have an account
+            </button>
+          </section>
+
+          <form class="join-step" id="join-step-form" hidden>
+            <h2 class="join-title">Add your organisation</h2>
+            <label class="join-field">
+              <span>Organisation / name</span>
+              <input id="join-name" type="text" required maxlength="120" />
+            </label>
+            <label class="join-field">
+              <span>Email</span>
+              <input id="join-email" type="email" required />
+            </label>
+            <label class="join-field">
+              <span>Password</span>
+              <input
+                id="join-password"
+                type="password"
+                required
+                minlength="6"
+              />
+            </label>
+            <label class="join-field">
+              <span>Sector</span>
+              <select id="join-sector"></select>
+            </label>
+            <label class="join-field">
+              <span>Role / type</span>
+              <input
+                id="join-role"
+                type="text"
+                maxlength="120"
+                placeholder="e.g. Advocacy group"
+              />
+            </label>
+            <label class="join-field">
+              <span>Website</span>
+              <input id="join-website" type="url" placeholder="https://" />
+            </label>
+            <label class="join-field">
+              <span>Short description</span>
+              <textarea
+                id="join-description"
+                rows="3"
+                maxlength="600"
+              ></textarea>
+            </label>
+            <p class="join-error" id="join-form-error" hidden></p>
+            <button class="join-primary" id="join-submit-btn" type="submit">
+              Join the network
+            </button>
+            <button class="join-link" id="join-form-back-btn" type="button">
+              Back
+            </button>
+          </form>
+
+          <form class="join-step" id="join-step-login" hidden>
+            <h2 class="join-title">Log in</h2>
+            <label class="join-field">
+              <span>Email</span>
+              <input id="login-email" type="email" required />
+            </label>
+            <label class="join-field">
+              <span>Password</span>
+              <input id="login-password" type="password" required />
+            </label>
+            <p class="join-error" id="login-form-error" hidden></p>
+            <button class="join-primary" id="login-submit-btn" type="submit">
+              Log in
+            </button>
+            <button class="join-link" id="login-back-btn" type="button">
+              Back
+            </button>
+          </form>
+
+          <section class="join-step" id="join-step-done" hidden>
+            <div class="join-astronaut-wrap">
+              <canvas id="join-done-canvas"></canvas>
+            </div>
+            <h2 class="join-title" id="join-done-title">
+              Welcome to the network
+            </h2>
+            <p class="join-sub" id="join-done-sub"></p>
+            <button class="join-primary" id="join-done-btn" type="button">
+              See my spot on the map
+            </button>
+          </section>
+        </div>
+      </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <!-- js used to live inline too, now it's script.js -->
     <script src="script.js"></script>
   </body>
