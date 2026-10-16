@@ -2604,6 +2604,9 @@
   }
 
   function attachPointerHandlers(el) {
+    // Tracks what the current mouse drag is doing.
+    var dragInteraction = "rotate";
+    var draggedStar = null;
     // grabbing the tooltip once so we're not doing getElementById every mousemove, ya feel
     var tooltipEl = document.getElementById("node-tooltip");
     function hideTooltip() {
@@ -2617,13 +2620,35 @@
     }
 
     el.addEventListener("pointerdown", function (e) {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+
       pointer.active = true;
       pointer.moved = false;
       pointer.downX = pointer.x = e.clientX;
       pointer.downY = pointer.y = e.clientY;
+
+      dragInteraction = "rotate";
+      draggedStar = null;
+
+      if (networkMode === "creation") {
+        var rect = el.getBoundingClientRect();
+
+        var hit = pickNodeAt(e.clientX - rect.left, e.clientY - rect.top);
+
+        if (hit) {
+          dragInteraction = "star";
+          draggedStar = hit;
+
+          console.log("STAR DETECTED:", hit.name);
+        } else {
+          console.log("EMPTY SPACE DETECTED");
+        }
+      }
+
       el.setPointerCapture(e.pointerId);
       el.classList.add("dragging");
-      hideTooltip(); // don't want the label just floating there while you drag
+
+      hideTooltip();
     });
 
     el.addEventListener("pointermove", function (e) {
@@ -2645,6 +2670,39 @@
           );
           if (state.focusMode) updateFocusPivot(); // re-center on the selected node as it spins
           needsRender = true;
+        }
+        if (pointer.moved) {
+          console.log("DRAG TYPE:", dragInteraction);
+          if (dragInteraction === "star" && draggedStar) {
+            // CREATION MODE: STAR INTERACTION
+            // Placeholder for actual star movement.
+
+            console.log(
+              "Dragging star:",
+              draggedStar.name,
+              "Mouse:",
+              e.clientX,
+              e.clientY,
+            );
+
+            el.style.cursor = "grabbing";
+          } else {
+            // NORMAL ROTATION
+            // Also works when dragging empty space in Creation Mode.
+
+            constellation.rotation.y += dx * 0.006;
+
+            constellation.rotation.x = Math.max(
+              -0.6,
+              Math.min(0.6, constellation.rotation.x + dy * 0.006),
+            );
+
+            if (state.focusMode) {
+              updateFocusPivot();
+            }
+
+            needsRender = true;
+          }
         }
         pointer.x = e.clientX;
         pointer.y = e.clientY;
@@ -2687,11 +2745,25 @@
     function endDrag(e) {
       pointer.active = false;
       el.classList.remove("dragging");
-      if (!pointer.moved) {
+
+      if (dragInteraction === "star" && draggedStar && pointer.moved) {
+        // CREATION MODE: STAR RELEASE
+        // Placeholder for overlap detection.
+
+        console.log("Released star:", draggedStar.name);
+      } else if (!pointer.moved && e.type !== "pointercancel") {
+        // Keep existing click-to-select behaviour.
+
         var rect = el.getBoundingClientRect();
+
         var hit = pickNodeAt(e.clientX - rect.left, e.clientY - rect.top);
+
         selectNode(hit ? hit.id : null);
       }
+
+      dragInteraction = "rotate";
+      draggedStar = null;
+      el.style.cursor = "grab";
     }
     el.addEventListener("pointerup", endDrag);
     el.addEventListener("pointercancel", endDrag);
