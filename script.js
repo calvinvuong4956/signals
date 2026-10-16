@@ -21,6 +21,11 @@
     var isCreation = networkMode === "creation";
 
     document.body.classList.toggle("creation-mode", isCreation);
+    var resetButton = document.getElementById("reset-speculative-connections");
+
+    if (resetButton) {
+      resetButton.style.display = isCreation ? "block" : "none";
+    }
 
     modeLabel.textContent = isCreation
       ? "Return to Normal Mode"
@@ -2700,6 +2705,59 @@
 
   var speculativeConnections = [];
   var starReturnAnimations = [];
+  // ========================================
+  // RESET SPECULATIVE CONNECTIONS
+  // ========================================
+
+  function resetSpeculativeConnections() {
+    speculativeConnections.forEach(function (connection) {
+      // Remove the line from the 3D scene.
+      constellation.remove(connection.line);
+
+      // Release Three.js resources.
+      connection.line.geometry.dispose();
+      connection.line.material.dispose();
+    });
+
+    // Empty the speculative connection array.
+    speculativeConnections.length = 0;
+
+    needsRender = true;
+
+    console.log("All speculative connections have been reset.");
+  }
+
+  // ========================================
+  // TEMPORARY RESET BUTTON
+  // ========================================
+
+  var resetConnectionsButton = document.createElement("button");
+
+  resetConnectionsButton.textContent = "Reset Connections";
+  resetConnectionsButton.id = "reset-speculative-connections";
+
+  Object.assign(resetConnectionsButton.style, {
+    position: "fixed",
+    bottom: "80px",
+    left: "20px",
+    zIndex: "9999",
+    padding: "10px 16px",
+    background: "#111827",
+    color: "#67e8f9",
+    border: "1px solid #67e8f9",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    fontSize: "12px",
+  });
+
+  resetConnectionsButton.addEventListener("click", function () {
+    resetSpeculativeConnections();
+  });
+
+  document.body.appendChild(resetConnectionsButton);
+  resetConnectionsButton.style.display =
+    networkMode === "creation" ? "block" : "none";
 
   var SPECULATIVE_LINE_DURATION = 550;
   var STAR_RETURN_DURATION = 650;
