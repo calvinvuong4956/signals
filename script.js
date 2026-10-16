@@ -7,7 +7,7 @@
   // NETWORK MODES
   // ========================================
 
-  var networkMode = "normal";
+  var networkMode = "creation";
 
   var modeButton = document.getElementById("network-mode-btn");
   var modeLabel = document.getElementById("network-mode-label");
@@ -30,6 +30,8 @@
 
     console.log("Network mode:", networkMode);
   }
+  // TEMPORARY: Start in Creation Mode for testing
+  setNetworkMode("creation");
 
   function openNetworkModeIntro() {
     modeOverlay.classList.add("open");
