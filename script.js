@@ -2652,10 +2652,201 @@
     needsRender = true;
   }
 
+  // ========================================
+  // CREATION MODE: STAR OVERLAP DETECTION
+  // ========================================
+
+  var STAR_OVERLAP_RADIUS = 28; // pixels
+
+  function findOverlappingStar(draggedNode) {
+    // Ensure projected positions are current.
+    constellation.updateMatrixWorld(true);
+    camera.updateMatrixWorld(true);
+
+    var draggedScreenPos = projectNode(draggedNode);
+
+    var closestNode = null;
+    var closestDistance = STAR_OVERLAP_RADIUS;
+
+    NODES.forEach(function (node) {
+      // Don't allow a star to overlap itself.
+      if (node.id === draggedNode.id) return;
+
+      // Ignore hidden or filtered-out stars.
+      if (!isNodePickable(node)) return;
+
+      var screenPos = projectNode(node);
+
+      // Ignore stars outside the visible depth range.
+      if (screenPos.z < -1 || screenPos.z > 1) return;
+
+      var dx = screenPos.x - draggedScreenPos.x;
+      var dy = screenPos.y - draggedScreenPos.y;
+
+      var distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestNode = node;
+      }
+    });
+
+    return closestNode;
+  }
+
+  // ========================================
+  // CREATION MODE: SPECULATIVE CONNECTIONS
+  // ========================================
+
+  var speculativeConnections = [];
+  var starReturnAnimations = [];
+
+  var SPECULATIVE_LINE_DURATION = 550;
+  var STAR_RETURN_DURATION = 650;
+
+  function easeOutCubic(t) {
+    return 1 - Math.pow(1 - t, 3);
+  }
+
+  function createSpeculativeConnection(fromNode, toNode, fromPosition) {
+    // Prevent duplicate connections in either direction.
+    var exists = speculativeConnections.some(function (connection) {
+      return (
+        (connection.fromId === fromNode.id && connection.toId === toNode.id) ||
+        (connection.fromId === toNode.id && connection.toId === fromNode.id)
+      );
+    });
+
+    if (exists) {
+      console.log("Speculative connection already exists.");
+      return;
+    }
+
+    var start = fromPosition.clone();
+    var end = layout[toNode.id].clone();
+
+    var geometry = new THREE_.BufferGeometry().setFromPoints([
+      start,
+      start.clone(),
+    ]);
+
+    var material = new THREE_.LineDashedMaterial({
+      color: 0x67e8f9,
+      transparent: true,
+      opacity: 0.9,
+      dashSize: 3,
+      gapSize: 2,
+      depthWrite: false,
+    });
+
+    var line = new THREE_.Line(geometry, material);
+    line.frustumCulled = false;
+
+    constellation.add(line);
+
+    speculativeConnections.push({
+      fromId: fromNode.id,
+      toId: toNode.id,
+      line: line,
+      start: start,
+      end: end,
+      startTime: performance.now(),
+      complete: false,
+    });
+
+    console.log(
+      "Speculative connection created:",
+      fromNode.name,
+      "↔",
+      toNode.name,
+    );
+
+    needsRender = true;
+  }
+
+  function animateSpeculativeConnections(now) {
+    speculativeConnections.forEach(function (connection) {
+      if (connection.complete) return;
+
+      var progress = Math.min(
+        1,
+        (now - connection.startTime) / SPECULATIVE_LINE_DURATION,
+      );
+
+      var eased = easeOutCubic(progress);
+
+      var currentEnd = connection.start.clone().lerp(connection.end, eased);
+
+      var positions = connection.line.geometry.attributes.position;
+
+      positions.setXYZ(
+        0,
+        connection.start.x,
+        connection.start.y,
+        connection.start.z,
+      );
+
+      positions.setXYZ(1, currentEnd.x, currentEnd.y, currentEnd.z);
+
+      positions.needsUpdate = true;
+
+      // Required for dashed lines to display correctly.
+      connection.line.computeLineDistances();
+
+      if (progress >= 1) {
+        connection.complete = true;
+      }
+
+      needsRender = true;
+    });
+  }
+
+  // ========================================
+  // CREATION MODE: STAR RETURN ANIMATION
+  // ========================================
+
+  function returnStarToPosition(node, originalPosition) {
+    // Replace any existing return animation for this star.
+    starReturnAnimations = starReturnAnimations.filter(function (animation) {
+      return animation.node.id !== node.id;
+    });
+
+    starReturnAnimations.push({
+      node: node,
+      from: layout[node.id].clone(),
+      to: originalPosition.clone(),
+      startTime: performance.now(),
+    });
+
+    needsRender = true;
+  }
+
+  function animateStarReturns(now) {
+    for (var i = starReturnAnimations.length - 1; i >= 0; i--) {
+      var animation = starReturnAnimations[i];
+
+      var progress = Math.min(
+        1,
+        (now - animation.startTime) / STAR_RETURN_DURATION,
+      );
+
+      var eased = easeOutCubic(progress);
+
+      var position = animation.from.clone().lerp(animation.to, eased);
+
+      moveStarTo(animation.node, position);
+
+      if (progress >= 1) {
+        starReturnAnimations.splice(i, 1);
+      }
+    }
+  }
+
   function attachPointerHandlers(el) {
     // Tracks what the current mouse drag is doing.
     var dragInteraction = "rotate";
     var draggedStar = null;
+    var originalStarPosition = null;
     // 3D dragging helpers
     var dragRaycaster = new THREE_.Raycaster();
     var dragPlane = new THREE_.Plane();
@@ -2707,6 +2898,15 @@
         if (hit) {
           dragInteraction = "star";
           draggedStar = hit;
+          // Cancel any unfinished return animation for this star.
+          starReturnAnimations = starReturnAnimations.filter(
+            function (animation) {
+              return animation.node.id !== hit.id;
+            },
+          );
+
+          // Remember where the star was before dragging.
+          originalStarPosition = layout[hit.id].clone();
 
           // Find the star's current position in world space.
           constellation.updateMatrixWorld(true);
@@ -2840,13 +3040,28 @@
       el.classList.remove("dragging");
 
       if (dragInteraction === "star" && draggedStar && pointer.moved) {
-        // CREATION MODE: STAR RELEASE
-        // Placeholder for overlap detection.
+        if (e.type !== "pointercancel") {
+          var overlappingStar = findOverlappingStar(draggedStar);
 
-        console.log("Released star:", draggedStar.name);
+          if (overlappingStar) {
+            console.log(
+              "OVERLAP:",
+              draggedStar.name,
+              "↔",
+              overlappingStar.name,
+            );
+
+            createSpeculativeConnection(
+              draggedStar,
+              overlappingStar,
+              originalStarPosition,
+            );
+          }
+        }
+
+        // Return the star whether or not an overlap was found.
+        returnStarToPosition(draggedStar, originalStarPosition);
       } else if (!pointer.moved && e.type !== "pointercancel") {
-        // Keep existing click-to-select behaviour.
-
         var rect = el.getBoundingClientRect();
 
         var hit = pickNodeAt(e.clientX - rect.left, e.clientY - rect.top);
@@ -2856,6 +3071,8 @@
 
       dragInteraction = "rotate";
       draggedStar = null;
+      originalStarPosition = null;
+
       el.style.cursor = "grab";
     }
     el.addEventListener("pointerup", endDrag);
@@ -2921,6 +3138,10 @@
   /* ---------------- render loop (dirty-flag gated) ---------------- */
   function tick() {
     raf = requestAnimationFrame(tick);
+    var animationTime = performance.now();
+
+    animateStarReturns(animationTime);
+    animateSpeculativeConnections(animationTime);
     if (
       ambientEnabled &&
       !state.focusMode &&
@@ -2956,7 +3177,15 @@
 
     // pills need to re-track their dot every frame the camera's still easing into focus
     if (state.focusMode && animating) updateConnLabels();
-
+    // Keep the render loop active while either animation is running.
+    if (
+      starReturnAnimations.length > 0 ||
+      speculativeConnections.some(function (connection) {
+        return !connection.complete;
+      })
+    ) {
+      needsRender = true;
+    }
     if (needsRender) {
       renderer.render(scene, camera);
       needsRender = (ambientEnabled && !state.focusMode) || animating;
