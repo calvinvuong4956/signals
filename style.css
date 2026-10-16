@@ -1089,3 +1089,192 @@ body.list-active .hint {
 #list-view::-webkit-scrollbar-thumb:hover {
   background: var(--text);
 }
+
+/* ========================================
+   NETWORK CREATION MODE
+======================================== */
+
+/* Bottom-left mode button */
+
+#network-mode-controls {
+  position: fixed;
+  bottom: 28px;
+  left: 28px;
+  z-index: 30;
+}
+
+#network-mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 12px 18px;
+
+  background: var(--bg);
+  color: var(--text);
+
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+
+  font-family: "Jura", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+
+  cursor: pointer;
+  transition:
+    background 0.25s,
+    border-color 0.25s,
+    opacity 0.25s;
+}
+
+#network-mode-btn:hover {
+  border-color: var(--text);
+}
+
+/* Small mode indicator */
+
+.mode-indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  flex-shrink: 0;
+}
+
+/* Active creation mode */
+
+body.creation-mode #network-mode-btn {
+  border-color: var(--text);
+}
+
+body.creation-mode .mode-indicator {
+  background: #80d8b0;
+  box-shadow: 0 0 10px rgba(128, 216, 176, 0.5);
+}
+
+/* Introductory modal overlay */
+
+#network-mode-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: 20px;
+
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
+}
+
+#network-mode-overlay.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Modal content */
+
+.network-mode-modal {
+  width: 100%;
+  max-width: 480px;
+
+  padding: 36px;
+
+  background: var(--bg);
+  color: var(--text);
+
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+}
+
+.network-mode-eyebrow {
+  display: block;
+  margin-bottom: 18px;
+
+  font-family: "Jura", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--text-dim);
+}
+
+.network-mode-modal h2 {
+  margin: 0 0 20px;
+  font-family: "Jura", sans-serif;
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.network-mode-modal p {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text);
+}
+
+.network-mode-disclaimer {
+  opacity: 0.6;
+  font-size: 11px !important;
+}
+
+/* Modal buttons */
+
+.network-mode-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.network-mode-actions button {
+  padding: 11px 18px;
+
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+
+  background: transparent;
+  color: var(--text);
+
+  font-family: "Jura", sans-serif;
+  font-size: 12px;
+
+  cursor: pointer;
+}
+
+#network-mode-start {
+  background: var(--text);
+  color: var(--bg);
+}
+
+.network-mode-actions button:hover {
+  opacity: 0.75;
+}
+
+/* Keep the mode button out of the introduction and list view */
+
+body.list-active #network-mode-controls,
+body.focus-active #network-mode-controls {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  #network-mode-controls {
+    bottom: 16px;
+    left: 16px;
+  }
+
+  .network-mode-modal {
+    padding: 24px;
+  }
+}

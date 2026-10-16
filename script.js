@@ -3,6 +3,74 @@
 
 (function () {
   "use strict";
+  // ========================================
+  // NETWORK MODES
+  // ========================================
+
+  var networkMode = "normal";
+
+  var modeButton = document.getElementById("network-mode-btn");
+  var modeLabel = document.getElementById("network-mode-label");
+  var modeOverlay = document.getElementById("network-mode-overlay");
+  var modeStart = document.getElementById("network-mode-start");
+  var modeCancel = document.getElementById("network-mode-cancel");
+
+  function setNetworkMode(mode) {
+    networkMode = mode;
+
+    var isCreation = networkMode === "creation";
+
+    document.body.classList.toggle("creation-mode", isCreation);
+
+    modeLabel.textContent = isCreation
+      ? "Return to Normal Mode"
+      : "Network Creation Mode";
+
+    modeButton.setAttribute("aria-pressed", String(isCreation));
+
+    console.log("Network mode:", networkMode);
+  }
+
+  function openNetworkModeIntro() {
+    modeOverlay.classList.add("open");
+    modeOverlay.setAttribute("aria-hidden", "false");
+    modeStart.focus();
+  }
+
+  function closeNetworkModeIntro() {
+    modeOverlay.classList.remove("open");
+    modeOverlay.setAttribute("aria-hidden", "true");
+    modeButton.focus();
+  }
+
+  modeButton.addEventListener("click", function () {
+    if (networkMode === "normal") {
+      openNetworkModeIntro();
+    } else {
+      setNetworkMode("normal");
+    }
+  });
+
+  modeStart.addEventListener("click", function () {
+    closeNetworkModeIntro();
+    setNetworkMode("creation");
+  });
+
+  modeCancel.addEventListener("click", function () {
+    closeNetworkModeIntro();
+  });
+
+  modeOverlay.addEventListener("click", function (event) {
+    if (event.target === modeOverlay) {
+      closeNetworkModeIntro();
+    }
+  });
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && modeOverlay.classList.contains("open")) {
+      closeNetworkModeIntro();
+    }
+  });
 
   // 1. DATA — this is the real dataset now (136 orgs, 16 sectors), edit the arrays below if TLaWC sends updates
   var CATEGORIES = [
