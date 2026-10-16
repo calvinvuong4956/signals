@@ -2662,16 +2662,6 @@
         )
           pointer.moved = true;
         if (pointer.moved) {
-          // rotating works in focus mode too now — orbit around whatever node's selected
-          constellation.rotation.y += dx * 0.006;
-          constellation.rotation.x = Math.max(
-            -0.6,
-            Math.min(0.6, constellation.rotation.x + dy * 0.006),
-          );
-          if (state.focusMode) updateFocusPivot(); // re-center on the selected node as it spins
-          needsRender = true;
-        }
-        if (pointer.moved) {
           console.log("DRAG TYPE:", dragInteraction);
           if (dragInteraction === "star" && draggedStar) {
             // CREATION MODE: STAR INTERACTION
