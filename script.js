@@ -2705,11 +2705,61 @@
 
   var speculativeConnections = [];
   var starReturnAnimations = [];
+
+  function generateConnectionDescription(nodeA, nodeB) {
+    var pair = [nodeA.category, nodeB.category].sort().join("|");
+
+    var suggestions = {
+      "culture|education":
+        "These organisations could collaborate on arts-based educational programmes, combining creative practice with learning opportunities.",
+
+      "education|innovation":
+        "These organisations could explore new learning technologies, research initiatives, or educational innovation projects.",
+
+      "housing|welfare":
+        "These organisations could connect housing services with community support programmes to address housing insecurity and wellbeing.",
+
+      "business|education":
+        "These organisations could develop industry partnerships, professional training, or employment pathways.",
+
+      "culture|media":
+        "These organisations could work together on storytelling, creative campaigns, and media projects that amplify community voices.",
+    };
+
+    if (suggestions[pair]) {
+      return suggestions[pair];
+    }
+
+    var categoryA = CATEGORIES.find(function (c) {
+      return c.id === nodeA.category;
+    });
+
+    var categoryB = CATEGORIES.find(function (c) {
+      return c.id === nodeB.category;
+    });
+
+    var labelA = categoryA ? categoryA.label : nodeA.category;
+    var labelB = categoryB ? categoryB.label : nodeB.category;
+
+    return (
+      nodeA.name +
+      " and " +
+      nodeB.name +
+      " could explore a potential collaboration connecting " +
+      labelA.toLowerCase() +
+      " and " +
+      labelB.toLowerCase() +
+      ". By sharing their respective expertise and resources, " +
+      "they could identify opportunities for joint projects."
+    );
+  }
+
   // ========================================
   // RESET SPECULATIVE CONNECTIONS
   // ========================================
 
   function resetSpeculativeConnections() {
+    closeGhostDescription();
     speculativeConnections.forEach(function (connection) {
       // Remove the line from the 3D scene.
       constellation.remove(connection.line);
@@ -2810,6 +2860,7 @@
       end: end,
       startTime: performance.now(),
       complete: false,
+      description: generateConnectionDescription(fromNode, toNode),
     });
 
     console.log(
@@ -2821,7 +2872,94 @@
 
     needsRender = true;
   }
+  function closeGhostDescription() {
+    var panel = document.getElementById("ghost-description-panel");
+    panel.classList.remove("open");
+    panel.setAttribute("aria-hidden", "true");
+  }
 
+  function openGhostDescription(connection) {
+    var fromNode = nodeById[connection.fromId];
+    var toNode = nodeById[connection.toId];
+
+    if (!fromNode || !toNode) return;
+
+    document.getElementById("ghost-description-title").textContent =
+      fromNode.name + " × " + toNode.name;
+
+    document.getElementById("ghost-description-text").textContent =
+      connection.description;
+
+    var panel = document.getElementById("ghost-description-panel");
+    panel.classList.add("open");
+    panel.setAttribute("aria-hidden", "false");
+  }
+
+  document
+    .getElementById("ghost-description-close")
+    .addEventListener("click", closeGhostDescription);
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") closeGhostDescription();
+  });
+
+  function pickGhostConnection(clientX, clientY) {
+    if (networkMode !== "creation") return null;
+
+    var rect = renderer.domElement.getBoundingClientRect();
+    var px = clientX - rect.left;
+    var py = clientY - rect.top;
+
+    constellation.updateMatrixWorld(true);
+    camera.updateMatrixWorld(true);
+
+    var closest = null;
+    var closestDistance = 12;
+
+    speculativeConnections.forEach(function (connection) {
+      if (!connection.complete) return;
+
+      var a = connection.start
+        .clone()
+        .applyMatrix4(constellation.matrixWorld)
+        .project(camera);
+
+      var b = connection.end
+        .clone()
+        .applyMatrix4(constellation.matrixWorld)
+        .project(camera);
+
+      if (a.z < -1 || a.z > 1 || b.z < -1 || b.z > 1) return;
+
+      var ax = ((a.x + 1) * rect.width) / 2;
+      var ay = ((1 - a.y) * rect.height) / 2;
+      var bx = ((b.x + 1) * rect.width) / 2;
+      var by = ((1 - b.y) * rect.height) / 2;
+
+      var dx = bx - ax;
+      var dy = by - ay;
+      var lengthSquared = dx * dx + dy * dy;
+
+      if (lengthSquared === 0) return;
+
+      var t = Math.max(
+        0,
+        Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lengthSquared),
+      );
+
+      var nearestX = ax + t * dx;
+      var nearestY = ay + t * dy;
+
+      var distance = Math.hypot(px - nearestX, py - nearestY);
+
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closest = connection;
+      }
+    });
+
+    return closest;
+  }
   function animateSpeculativeConnections(now) {
     speculativeConnections.forEach(function (connection) {
       if (connection.complete) return;
@@ -3124,7 +3262,14 @@
 
         var hit = pickNodeAt(e.clientX - rect.left, e.clientY - rect.top);
 
-        selectNode(hit ? hit.id : null);
+        var ghostHit = hit ? null : pickGhostConnection(e.clientX, e.clientY);
+
+        if (ghostHit) {
+          openGhostDescription(ghostHit);
+        } else {
+          closeGhostDescription();
+          selectNode(hit ? hit.id : null);
+        }
       }
 
       dragInteraction = "rotate";

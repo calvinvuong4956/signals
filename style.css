@@ -1278,3 +1278,74 @@ body.focus-active #network-mode-controls {
     padding: 24px;
   }
 }
+
+/* ---------- Ghost Connection Descriptions ---------- */
+
+#ghost-description-panel {
+  position: absolute;
+  top: 70px;
+  right: 20px;
+  width: 320px;
+  max-width: calc(100vw - 40px);
+  padding: 22px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  z-index: 40;
+
+  opacity: 0;
+  transform: translateX(12px);
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+#ghost-description-panel.open {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+#ghost-description-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.ghost-description-eyebrow {
+  font-family: "Arimo", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: #67e8f9;
+  margin-bottom: 14px;
+}
+
+#ghost-description-title {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+  margin: 0 0 14px;
+}
+
+#ghost-description-text {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.ghost-description-disclaimer {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-dim);
+}
