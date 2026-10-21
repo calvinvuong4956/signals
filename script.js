@@ -2006,7 +2006,7 @@
     if (!Ctx) return; // ancient browser or no audio support, just skip sound entirely
     audioCtx = new Ctx();
     masterGain = audioCtx.createGain();
-    masterGain.gain.value = state.muted ? 0 : 1;
+    masterGain.gain.value = state.muted ? 0 : 7;
     masterGain.connect(audioCtx.destination);
   }
 
@@ -4637,7 +4637,8 @@
     })[0];
     if (chipEntry) {
       var countEl = chipEntry.chip.querySelector(".chip-count");
-      if (countEl) countEl.textContent = String(Number(countEl.textContent) + 1);
+      if (countEl)
+        countEl.textContent = String(Number(countEl.textContent) + 1);
     }
     updateNodeCountLabel();
 
@@ -4903,7 +4904,8 @@
       overlay.setAttribute("aria-hidden", "false");
       playClickSound();
       if (step === stepDone) startPreview($("join-done-canvas"));
-      else if (!step || step === stepIntro) startPreview($("join-astronaut-canvas"));
+      else if (!step || step === stepIntro)
+        startPreview($("join-astronaut-canvas"));
     }
 
     function closeOverlay() {
@@ -4926,7 +4928,8 @@
       if (e.target === overlay) closeOverlay();
     });
     document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && overlay.classList.contains("open")) closeOverlay();
+      if (e.key === "Escape" && overlay.classList.contains("open"))
+        closeOverlay();
     });
 
     $("join-start-btn").addEventListener("click", function () {
@@ -5025,7 +5028,8 @@
           setJoined(body.token, body.node);
           stopPreviews();
           $("join-done-title").textContent = "Welcome back, " + body.node.name;
-          $("join-done-sub").textContent = "Here's your spot on the constellation.";
+          $("join-done-sub").textContent =
+            "Here's your spot on the constellation.";
           showStep(stepDone);
           startPreview($("join-done-canvas"));
         })
