@@ -1373,7 +1373,38 @@ body.focus-active #network-mode-controls {
   font-size: 16px;
   font-weight: 600;
   line-height: 1.5;
-  margin: 0 0 14px;
+  margin: 0 0 8px;
+}
+
+/* Sector indicators beneath the ghost connection title */
+.ghost-description-sectors {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.ghost-sector {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.ghost-sector-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ghost-sector-separator {
+  color: #67e8f9;
+  font-size: 13px;
 }
 
 #ghost-description-text {

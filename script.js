@@ -3316,6 +3316,41 @@
     document.getElementById("ghost-description-title").textContent =
       fromNode.name + " × " + toNode.name;
 
+    // Show the sectors of both connected organisations
+    var sectorsEl = document.getElementById("ghost-description-sectors");
+    sectorsEl.replaceChildren();
+
+    function addGhostSector(node) {
+      var category = CATEGORIES.find(function (cat) {
+        return cat.id === node.category;
+      });
+
+      if (!category) return;
+
+      var sector = document.createElement("span");
+      sector.className = "ghost-sector";
+
+      var dot = document.createElement("span");
+      dot.className = "ghost-sector-dot";
+      dot.style.backgroundColor = category.hex;
+
+      var label = document.createElement("span");
+      label.textContent = category.label;
+
+      sector.appendChild(dot);
+      sector.appendChild(label);
+      sectorsEl.appendChild(sector);
+    }
+
+    addGhostSector(fromNode);
+
+    var separator = document.createElement("span");
+    separator.className = "ghost-sector-separator";
+    separator.textContent = "×";
+    sectorsEl.appendChild(separator);
+
+    addGhostSector(toNode);
+
     document.getElementById("ghost-description-text").textContent =
       connection.description;
 
