@@ -18,6 +18,13 @@
   function setNetworkMode(mode) {
     networkMode = mode;
 
+    if (
+      mode !== "creation" &&
+      typeof updateGhostConnectionHover === "function"
+    ) {
+      updateGhostConnectionHover(null);
+    }
+
     var isCreation = networkMode === "creation";
 
     document.body.classList.toggle("creation-mode", isCreation);
@@ -2994,6 +3001,7 @@
   // ========================================
 
   function resetSpeculativeConnections() {
+    hoveredGhostConnection = null;
     closeGhostDescription();
     speculativeConnections.forEach(function (connection) {
       // Remove the line from the 3D scene.
@@ -3137,6 +3145,57 @@
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape") closeGhostDescription();
   });
+
+  // ========================================
+  // GHOST CONNECTION HOVER HIGHLIGHT
+  // ========================================
+
+  var hoveredGhostConnection = null;
+
+  var GHOST_NORMAL_COLOR = new THREE_.Color(0x67e8f9);
+  var GHOST_HOVER_COLOR = new THREE_.Color(0xffffff);
+
+  function updateGhostConnectionHover(connection) {
+    if (hoveredGhostConnection === connection) return;
+
+    hoveredGhostConnection = connection;
+
+    speculativeConnections.forEach(function (ghost) {
+      ghost.line.material.userData.hoverTarget = ghost === connection ? 1 : 0;
+    });
+
+    needsRender = true;
+  }
+
+  function animateGhostConnectionHover() {
+    var animating = false;
+
+    speculativeConnections.forEach(function (ghost) {
+      var material = ghost.line.material;
+
+      var target = material.userData.hoverTarget || 0;
+      var current = material.userData.hoverAmount || 0;
+
+      // Smooth transition toward the target brightness.
+      var next = current + (target - current) * 0.18;
+
+      if (Math.abs(target - next) < 0.005) {
+        next = target;
+      } else {
+        animating = true;
+      }
+
+      material.userData.hoverAmount = next;
+
+      // Blend between normal cyan and bright white.
+      material.color.copy(GHOST_NORMAL_COLOR).lerp(GHOST_HOVER_COLOR, next);
+
+      // Increase opacity when hovered.
+      material.opacity = 0.9 + next * 0.1;
+    });
+
+    if (animating) needsRender = true;
+  }
 
   function pickGhostConnection(clientX, clientY) {
     if (networkMode !== "creation") return null;
@@ -3436,6 +3495,15 @@
         var rect = el.getBoundingClientRect();
         var hit = pickNodeAt(e.clientX - rect.left, e.clientY - rect.top);
         var newId = hit ? hit.id : null;
+
+        // Detect nearby ghost connections, unless hovering over a star.
+        var ghostHit = null;
+
+        if (!hit && networkMode === "creation") {
+          ghostHit = pickGhostConnection(e.clientX, e.clientY);
+        }
+
+        updateGhostConnectionHover(ghostHit);
         if (newId !== state.hoveredId) {
           state.hoveredId = newId;
           if (!state.focusMode) {
@@ -3443,7 +3511,8 @@
             updateLegendHoverChip();
             updateLegendChipHighlight();
           } else updateConnLabels(); // in focus mode the pill only shows for whatever's hovered right now
-          el.style.cursor = newId ? "pointer" : "grab";
+          el.style.cursor =
+            newId || hoveredGhostConnection ? "pointer" : "grab";
           if (newId) playHoverSound(); // little blip every time you land on a new node
         }
         // plain cursor tooltip is for the normal overview — in focus mode we've got the pill labels instead
@@ -3457,6 +3526,8 @@
 
     // gotta hide the tooltip when cursor leaves canvas or it just gets stuck there forever
     el.addEventListener("pointerleave", function () {
+      updateGhostConnectionHover(null);
+      el.style.cursor = "grab";
       state.hoveredId = null;
       hideTooltip();
       if (!state.focusMode) {
@@ -3580,6 +3651,7 @@
 
     animateStarReturns(animationTime);
     animateSpeculativeConnections(animationTime);
+    animateGhostConnectionHover();
     if (
       ambientEnabled &&
       !state.focusMode &&
