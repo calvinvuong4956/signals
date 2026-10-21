@@ -28,11 +28,7 @@
     var isCreation = networkMode === "creation";
 
     document.body.classList.toggle("creation-mode", isCreation);
-    var resetButton = document.getElementById("reset-speculative-connections");
-
-    if (resetButton) {
-      resetButton.style.display = isCreation ? "block" : "none";
-    }
+    updateResetConnectionsVisibility();
 
     modeLabel.textContent = isCreation
       ? "Return to Normal Mode"
@@ -2092,6 +2088,7 @@
 
   function enterFocus(id) {
     state.focusMode = true;
+    updateResetConnectionsVisibility();
     document.body.classList.add("focus-active");
     var local = layout[id];
     var rotated = local.clone().applyEuler(constellation.rotation);
@@ -2108,6 +2105,7 @@
 
   function exitFocus() {
     state.focusMode = false;
+    updateResetConnectionsVisibility();
     document.body.classList.remove("focus-active");
     targetGroupPos.set(0, 0, 0);
     targetCameraZ = OVERVIEW_CAMERA_Z;
@@ -2766,6 +2764,25 @@
 
   var ghostGlowTexture = createGhostGlowTexture();
   var speculativeConnections = [];
+  // Show Reset Connections only when it is relevant.
+  function updateResetConnectionsVisibility() {
+    var button = document.getElementById("reset-speculative-connections");
+
+    if (!button) return;
+
+    var starList = document.getElementById("list-view");
+
+    var listIsOpen = starList && starList.classList.contains("active");
+
+    var shouldShow =
+      networkMode === "creation" &&
+      !state.focusMode &&
+      !listIsOpen &&
+      Array.isArray(speculativeConnections) &&
+      speculativeConnections.length > 0;
+
+    button.style.display = shouldShow ? "block" : "none";
+  }
   // Returns the IDs of all stars connected to this star,
   // including original and ghost connections.
   function getAllConnectedNodeIds(id) {
@@ -3107,6 +3124,7 @@
 
     // Completely remove the connections from the data.
     speculativeConnections.length = 0;
+    updateResetConnectionsVisibility();
 
     // Refresh Focused View so ghost-connected stars
     // no longer count as neighbours.
@@ -3148,8 +3166,8 @@
   });
 
   document.body.appendChild(resetConnectionsButton);
-  resetConnectionsButton.style.display =
-    networkMode === "creation" ? "block" : "none";
+  resetConnectionsButton.style.display = "none";
+  updateResetConnectionsVisibility();
 
   var SPECULATIVE_LINE_DURATION = 550;
   var STAR_RETURN_DURATION = 650;
@@ -3254,6 +3272,7 @@
       complete: false,
       description: generateConnectionDescription(fromNode, toNode),
     });
+    updateResetConnectionsVisibility();
 
     console.log(
       "Speculative connection created:",
@@ -4309,6 +4328,8 @@
 
     playClickSound();
     toggleListView();
+
+    updateResetConnectionsVisibility();
   });
 
   function toggleListView(force) {
@@ -4316,10 +4337,15 @@
       typeof force === "boolean"
         ? force
         : !listView.classList.contains("active");
+
     listView.classList.toggle("active", show);
     listBtn.setAttribute("aria-pressed", String(show));
     document.body.classList.toggle("list-active", show);
+
     if (show) buildListView();
+
+    // Update Reset Connections after switching views.
+    updateResetConnectionsVisibility();
   }
 
   function buildListView() {
