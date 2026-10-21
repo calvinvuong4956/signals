@@ -3919,6 +3919,8 @@
       playClickSound();
     });
   searchInput.addEventListener("focus", function () {
+    closeGhostDescription();
+
     searchWrap.classList.add("open");
   });
   searchInput.addEventListener("blur", function () {
@@ -3967,6 +3969,8 @@
   var settingsBtn = $("settings-btn");
   var settingsPanel = $("settings-panel");
   settingsBtn.addEventListener("click", function () {
+    closeGhostDescription();
+
     var open = settingsPanel.classList.toggle("open");
     settingsBtn.setAttribute("aria-expanded", String(open));
     settingsPanel.setAttribute("aria-hidden", String(!open));
@@ -4065,6 +4069,8 @@
   var listBtn = $("list-toggle-btn");
   var listView = $("list-view");
   listBtn.addEventListener("click", function () {
+    closeGhostDescription();
+
     playClickSound();
     toggleListView();
   });
