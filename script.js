@@ -2409,8 +2409,11 @@
     }
     var arr = [];
     var focusPos = layout[focusId];
+    // Draw orange lines ONLY for established connections.
+    // Ghost connections keep their own cyan dashed lines.
     nodeById[focusId].linked.forEach(function (otherId) {
       var p = layout[otherId];
+
       arr.push(focusPos.x, focusPos.y, focusPos.z, p.x, p.y, p.z);
     });
     lineHighlight.geometry.setAttribute(
@@ -2444,7 +2447,7 @@
       return;
     }
     var ids = [state.selectedId].concat(
-      Array.from(nodeById[state.selectedId].linked),
+      Array.from(getAllConnectedNodeIds(state.selectedId)),
     );
     ids.forEach(function (id, i) {
       var el = getConnLabelEl(i);
@@ -2482,7 +2485,7 @@
       var i = node._idx;
       if (state.focusMode && state.selectedId) {
         var isSelf = node.id === state.selectedId;
-        var isNeighbor = nodeById[state.selectedId].linked.has(node.id);
+        var isNeighbor = getAllConnectedNodeIds(state.selectedId).has(node.id);
         vis[i] = isSelf || isNeighbor ? 1 : 0;
         hi[i] = isSelf ? 1 : isNeighbor ? 0.55 : 0;
       } else {
@@ -2552,6 +2555,27 @@
     pointCloud.material.uniforms.uDim.value =
       focusId || state.focusMode ? 1 : 0;
     lineBase.visible = !state.focusMode;
+    // In Focused View, only show ghost connections
+    // belonging to the selected star.
+    speculativeConnections.forEach(function (connection) {
+      var visible =
+        !state.focusMode ||
+        connection.fromId === state.selectedId ||
+        connection.toId === state.selectedId;
+
+      connection.line.visible = visible;
+
+      // Keep the hover halo consistent.
+      if (connection.glowLine) {
+        connection.glowLine.visible = visible;
+      }
+
+      if (connection.glowSprites) {
+        connection.glowSprites.forEach(function (sprite) {
+          sprite.visible = visible && sprite.material.opacity > 0.005;
+        });
+      }
+    });
     updateHighlightLines();
     updateConnLabels();
     needsRender = true;
@@ -2588,7 +2612,7 @@
     if (state.focusMode && state.selectedId) {
       return (
         node.id === state.selectedId ||
-        nodeById[state.selectedId].linked.has(node.id)
+        getAllConnectedNodeIds(state.selectedId).has(node.id)
       );
     }
     if (!state.activeCats[node.category]) return false;
@@ -2732,6 +2756,23 @@
 
   var ghostGlowTexture = createGhostGlowTexture();
   var speculativeConnections = [];
+  // Returns the IDs of all stars connected to this star,
+  // including original and ghost connections.
+  function getAllConnectedNodeIds(id) {
+    var connected = new Set(nodeById[id].linked);
+
+    speculativeConnections.forEach(function (connection) {
+      if (connection.fromId === id) {
+        connected.add(connection.toId);
+      }
+
+      if (connection.toId === id) {
+        connected.add(connection.fromId);
+      }
+    });
+
+    return connected;
+  }
   var starReturnAnimations = [];
 
   function generateConnectionDescription(nodeA, nodeB) {
@@ -4019,7 +4060,7 @@
       linkEl.style.display = "none";
     }
 
-    var connIds = Array.from(node.linked);
+    var connIds = Array.from(getAllConnectedNodeIds(id));
     $("conn-count").textContent = connIds.length;
     var list = $("conn-list");
     list.innerHTML = "";
