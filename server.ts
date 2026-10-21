@@ -183,6 +183,26 @@ async function handleLogout(req: Request): Promise<Response> {
   return jsonResponse({ ok: true });
 }
 
+// The "save list": ids of the nodes a member wants to look back on. Stored per
+// account so it follows them to any laptop they log in on.
+async function handleSavedGet(req: Request): Promise<Response> {
+  const email = await getSessionEmail(req);
+  if (!email) return jsonResponse({ error: "Not logged in." }, 401);
+  const entry = await kv.get<string[]>(["saved", email]);
+  return jsonResponse({ saved: entry.value ?? [] });
+}
+
+async function handleSavedPut(req: Request): Promise<Response> {
+  const email = await getSessionEmail(req);
+  if (!email) return jsonResponse({ error: "Not logged in." }, 401);
+  const body = await readJson(req);
+  const saved = Array.isArray(body?.saved)
+    ? body.saved.filter((x: unknown) => typeof x === "string").slice(0, 500)
+    : [];
+  await kv.set(["saved", email], saved);
+  return jsonResponse({ saved });
+}
+
 async function handleMembers(): Promise<Response> {
   const members: MemberNode[] = [];
   for await (const entry of kv.list<MemberNode>({ prefix: ["members"] })) {
@@ -237,6 +257,8 @@ Deno.serve({ port: Number(Deno.env.get("PORT")) || 8000 }, async (req) => {
   if (url.pathname === "/api/logout" && req.method === "POST") return handleLogout(req);
   if (url.pathname === "/api/me" && req.method === "GET") return handleMe(req);
   if (url.pathname === "/api/members" && req.method === "GET") return handleMembers();
+  if (url.pathname === "/api/saved" && req.method === "GET") return handleSavedGet(req);
+  if (url.pathname === "/api/saved" && req.method === "PUT") return handleSavedPut(req);
 
   return serveStatic(req);
 });

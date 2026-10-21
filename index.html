@@ -321,6 +321,46 @@
         ><span>scroll to zoom</span><span>&middot;</span><span>tap a node</span>
       </div>
 
+      <!-- save list: the little alien only shows up once you've joined -->
+      <div class="saver" id="saver" hidden>
+        <div class="saver-toast" id="saver-toast" role="status" aria-live="polite" hidden>
+          <strong>Saved!</strong>
+          <span>Your save list lives down here with me.</span>
+        </div>
+        <img class="saver-bubble" src="save-list-bubble.png" alt="" aria-hidden="true" />
+        <button
+          class="saver-alien"
+          id="saver-alien"
+          type="button"
+          aria-haspopup="true"
+          aria-expanded="false"
+          aria-label="Open your save list"
+        >
+          <span class="saver-ring" aria-hidden="true"></span>
+          <img src="alien-saver.png" alt="" />
+          <span class="saver-count" id="saver-count" hidden>0</span>
+        </button>
+      </div>
+
+      <section class="saved-panel" id="saved-panel" aria-hidden="true" aria-label="Your save list">
+        <div class="saved-head">
+          <div>
+            <h3>Your save list</h3>
+            <p id="saved-sub">Organisations you want to look back on</p>
+          </div>
+          <button class="saved-close" id="saved-close" type="button" aria-label="Close save list">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <div class="saved-empty" id="saved-empty">
+          <strong>Nothing saved yet</strong>
+          <span>Open any organisation and tap the star circle to keep it here.</span>
+        </div>
+        <ul class="saved-list" id="saved-list"></ul>
+      </section>
+
       <section class="panel" id="settings-panel" aria-hidden="true">
         <h3>Display</h3>
         <div class="row">
@@ -408,6 +448,23 @@
         <p class="profile-name" id="profile-name"></p>
         <p class="profile-role" id="profile-role"></p>
         <div class="tag-row" id="profile-tags"></div>
+        <div class="save-prompt" id="profile-save" hidden>
+          <button
+            class="save-circle"
+            id="profile-save-btn"
+            type="button"
+            aria-pressed="false"
+            aria-label="Save to my save list"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3.2l2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.5l6-.8z" />
+            </svg>
+          </button>
+          <div class="save-prompt-text">
+            <strong id="profile-save-title">Interested in this one?</strong>
+            <span id="profile-save-sub">Tap the circle to save it to your list.</span>
+          </div>
+        </div>
         <p class="profile-org" id="profile-desc"></p>
         <p class="profile-org" id="profile-contact"></p>
         <a
@@ -468,68 +525,95 @@
             </div>
             <h2 class="join-title" id="join-title">Join the Constellation</h2>
             <p class="join-sub">
-              This is you. Sign up to add your organisation as its own node
-              and take your spot in the network.
+              This is you. Create your organisation's node and take your spot
+              in the network, or log in to come back to yours.
             </p>
-            <button class="join-primary" id="join-start-btn" type="button">
-              Get started
-            </button>
-            <button class="join-link" id="join-have-account-btn" type="button">
-              I already have an account
-            </button>
+            <div class="join-choice">
+              <button class="join-primary" id="join-start-btn" type="button">
+                Get started
+              </button>
+              <button
+                class="join-secondary"
+                id="join-have-account-btn"
+                type="button"
+              >
+                Log in
+              </button>
+            </div>
+            <p class="join-fine">
+              New here? Choose <strong>Get started</strong>. Already joined?
+              Choose <strong>Log in</strong>.
+            </p>
           </section>
 
-          <form class="join-step" id="join-step-form" hidden>
-            <h2 class="join-title">Add your organisation</h2>
-            <label class="join-field">
-              <span>Organisation / name</span>
-              <input id="join-name" type="text" required maxlength="120" />
-            </label>
-            <label class="join-field">
-              <span>Email</span>
-              <input id="join-email" type="email" required />
-            </label>
-            <label class="join-field">
-              <span>Password</span>
-              <input
-                id="join-password"
-                type="password"
-                required
-                minlength="6"
-              />
-            </label>
-            <label class="join-field">
-              <span>Sector</span>
-              <select id="join-sector"></select>
-            </label>
-            <label class="join-field">
-              <span>Role / type</span>
-              <input
-                id="join-role"
-                type="text"
-                maxlength="120"
-                placeholder="e.g. Advocacy group"
-              />
-            </label>
-            <label class="join-field">
-              <span>Website</span>
-              <input id="join-website" type="url" placeholder="https://" />
-            </label>
-            <label class="join-field">
-              <span>Short description</span>
-              <textarea
-                id="join-description"
-                rows="3"
-                maxlength="600"
-              ></textarea>
-            </label>
-            <p class="join-error" id="join-form-error" hidden></p>
-            <button class="join-primary" id="join-submit-btn" type="submit">
-              Join the network
-            </button>
-            <button class="join-link" id="join-form-back-btn" type="button">
-              Back
-            </button>
+          <form class="join-step" id="join-step-form" hidden novalidate>
+            <div class="join-progress" aria-hidden="true">
+              <span class="on" id="join-dot-1"></span><span id="join-dot-2"></span>
+            </div>
+            <h2 class="join-title" id="join-form-title">About your organisation</h2>
+            <p class="join-sub join-sub-tight" id="join-form-sub">Step 1 of 2</p>
+
+            <div class="join-pane" id="join-pane-1">
+              <label class="join-field">
+                <span>Sector</span>
+                <select id="join-sector"></select>
+              </label>
+              <label class="join-field">
+                <span>Organisation / name</span>
+                <input id="join-name" type="text" required maxlength="120" />
+              </label>
+              <label class="join-field">
+                <span>Role / type</span>
+                <input
+                  id="join-role"
+                  type="text"
+                  maxlength="120"
+                  placeholder="e.g. Advocacy group"
+                />
+              </label>
+              <label class="join-field">
+                <span>Website</span>
+                <input id="join-website" type="url" placeholder="https://" />
+              </label>
+              <label class="join-field">
+                <span>Short description</span>
+                <textarea
+                  id="join-description"
+                  rows="3"
+                  maxlength="600"
+                ></textarea>
+              </label>
+              <p class="join-error" id="join-pane1-error" hidden></p>
+              <button class="join-primary" id="join-next-btn" type="button">
+                Next
+              </button>
+              <button class="join-link" id="join-form-back-btn" type="button">
+                Back
+              </button>
+            </div>
+
+            <div class="join-pane" id="join-pane-2" hidden>
+              <label class="join-field">
+                <span>Email</span>
+                <input id="join-email" type="email" required />
+              </label>
+              <label class="join-field">
+                <span>Password</span>
+                <input
+                  id="join-password"
+                  type="password"
+                  required
+                  minlength="6"
+                />
+              </label>
+              <p class="join-error" id="join-form-error" hidden></p>
+              <button class="join-primary" id="join-submit-btn" type="submit">
+                Join the network
+              </button>
+              <button class="join-link" id="join-pane2-back-btn" type="button">
+                Back
+              </button>
+            </div>
           </form>
 
           <form class="join-step" id="join-step-login" hidden>
@@ -545,6 +629,9 @@
             <p class="join-error" id="login-form-error" hidden></p>
             <button class="join-primary" id="login-submit-btn" type="submit">
               Log in
+            </button>
+            <button class="join-link" id="login-new-btn" type="button">
+              New here? Get started
             </button>
             <button class="join-link" id="login-back-btn" type="button">
               Back

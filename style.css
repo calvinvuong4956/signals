@@ -1933,3 +1933,547 @@ body.focus-active #network-mode-controls {
 .settings-section-heading[hidden] {
   display: none !important;
 }
+
+/* ---------- join modal: clear Get started / Log in choice ---------- */
+.join-choice {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  margin-top: 2px;
+}
+.join-choice .join-primary,
+.join-choice .join-secondary {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.join-secondary {
+  height: 42px;
+  border-radius: 21px;
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--text);
+  font-family: "Montserrat", sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.1s ease;
+}
+.join-secondary:hover {
+  border-color: var(--accent);
+  background: var(--bg-elevated-2);
+}
+.join-secondary:active {
+  transform: scale(0.98);
+}
+.join-fine {
+  margin: 14px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+.join-fine strong {
+  color: var(--text);
+  font-weight: 600;
+}
+.join-progress {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.join-progress span {
+  width: 18px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line-strong);
+  transition: background 0.2s ease, width 0.2s ease;
+}
+.join-progress span.on {
+  width: 30px;
+  background: var(--accent);
+}
+.join-sub-tight {
+  margin: 0 0 16px;
+  text-align: center;
+  font-size: 12px;
+}
+.join-pane {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.join-pane[hidden] {
+  display: none;
+}
+.join-pane .join-link {
+  align-self: center;
+}
+
+/* ---------- save prompt on a profile ---------- */
+.save-prompt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--bg-elevated-2);
+  border: 1px dashed var(--line-strong);
+}
+.save-prompt[hidden] {
+  display: none;
+}
+.save-prompt.is-saved {
+  border-style: solid;
+  border-color: var(--accent);
+}
+.save-circle {
+  position: relative;
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    transform 0.12s ease;
+}
+.save-circle::after {
+  content: "";
+  position: absolute;
+  inset: -1.5px;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent);
+  animation: save-pulse 2s ease-out infinite;
+  pointer-events: none;
+}
+.save-prompt.is-saved .save-circle::after {
+  animation: none;
+  opacity: 0;
+}
+.save-circle:hover {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.save-circle:active {
+  transform: scale(0.92);
+}
+.save-circle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.save-prompt.is-saved .save-circle {
+  background: var(--accent);
+  color: #15161a;
+}
+.save-prompt.is-saved .save-circle svg {
+  fill: currentColor;
+}
+.save-prompt-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--text-dim);
+}
+.save-prompt-text strong {
+  font-size: 12.5px;
+  color: var(--text);
+  font-weight: 600;
+}
+@keyframes save-pulse {
+  0% { transform: scale(1); opacity: 0.7; }
+  80%, 100% { transform: scale(1.55); opacity: 0; }
+}
+
+/* ---------- the little alien: your save list ---------- */
+.saver {
+  position: absolute;
+  right: 22px;
+  bottom: 46px;
+  z-index: 22;
+  width: 78px;
+  height: 78px;
+  pointer-events: none;
+}
+.saver[hidden] {
+  display: none;
+}
+.saver.arrive .saver-alien {
+  animation: saver-arrive 0.9s cubic-bezier(0.22, 1.4, 0.36, 1) both,
+    saver-bob 2.6s ease-in-out 0.9s infinite;
+}
+.saver-alien {
+  position: relative;
+  width: 78px;
+  height: 78px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  pointer-events: auto;
+  animation: saver-bob 2.6s ease-in-out infinite;
+  transform-origin: 50% 90%;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
+}
+.saver-alien img {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.saver-alien:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 20px;
+}
+/* soft glow ring behind him so the eye goes down to the corner */
+.saver-ring {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: 62px;
+  height: 62px;
+  margin: -31px 0 0 -31px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  opacity: 0;
+  animation: saver-ring 2.6s ease-out infinite;
+  pointer-events: none;
+}
+.saver.calm .saver-ring {
+  animation: none;
+}
+.saver-count {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #15161a;
+  font: 600 11px/20px "Montserrat", sans-serif;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+.saver-count[hidden] {
+  display: none;
+}
+.saver-bubble {
+  position: absolute;
+  right: -18px;
+  bottom: 56px;
+  width: 168px;
+  height: 168px;
+  object-fit: contain;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(10px) scale(0.7);
+  transform-origin: 62% 86%;
+  transition:
+    opacity 0.18s ease,
+    transform 0.28s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.saver:hover .saver-bubble,
+.saver:focus-within .saver-bubble {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+.saver.open .saver-bubble {
+  display: none;
+}
+.saver-alien:hover {
+  animation-play-state: paused;
+}
+@keyframes saver-bob {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-8px) rotate(3deg); }
+}
+@keyframes saver-ring {
+  0% { transform: scale(0.8); opacity: 0.55; }
+  70%, 100% { transform: scale(1.7); opacity: 0; }
+}
+@keyframes saver-arrive {
+  0% { transform: translateY(-160px) scale(0.6); opacity: 0; }
+  60% { opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes saver-wiggle {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(-12deg) scale(1.08); }
+  40% { transform: rotate(10deg) scale(1.08); }
+  60% { transform: rotate(-7deg); }
+  80% { transform: rotate(5deg); }
+}
+.saver-alien.wiggle {
+  animation: saver-wiggle 0.8s ease both;
+}
+
+/* "Saved!" nudge that points down at him after the first save */
+.saver-toast {
+  position: absolute;
+  right: 0;
+  bottom: 92px;
+  width: 210px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--accent);
+  box-shadow: var(--shadow);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-dim);
+  pointer-events: none;
+  animation: toast-in 0.35s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+.saver-toast[hidden] {
+  display: none;
+}
+.saver-toast strong {
+  display: block;
+  color: var(--text);
+  font-size: 12.5px;
+}
+.saver-toast::after {
+  content: "";
+  position: absolute;
+  right: 30px;
+  bottom: -7px;
+  width: 12px;
+  height: 12px;
+  background: var(--bg-elevated);
+  border-right: 1px solid var(--accent);
+  border-bottom: 1px solid var(--accent);
+  transform: rotate(45deg);
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.95); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---------- the save list panel ---------- */
+.saved-panel {
+  position: absolute;
+  right: 20px;
+  bottom: 138px;
+  width: 300px;
+  max-height: min(380px, calc(100% - 190px));
+  display: flex;
+  flex-direction: column;
+  z-index: 26;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    transform 0.22s ease;
+}
+.saved-panel.open {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+.saved-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px 14px 10px 18px;
+}
+.saved-head h3 {
+  margin: 0;
+  font-family: "Jura", sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+}
+.saved-head p {
+  margin: 3px 0 0;
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+.saved-close {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.saved-close:hover {
+  color: var(--text);
+  background: var(--bg-elevated-2);
+}
+.saved-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 18px 20px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+.saved-empty[hidden] {
+  display: none;
+}
+.saved-empty strong {
+  color: var(--text);
+  font-size: 13px;
+}
+.saved-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 8px 10px;
+  overflow-y: auto;
+}
+.saved-list:empty {
+  display: none;
+}
+.saved-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 10px;
+}
+.saved-row:hover {
+  background: var(--bg-elevated-2);
+}
+.saved-item {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 8px 9px 10px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-family: "Montserrat", sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+.saved-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.saved-name {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.saved-sector {
+  display: block;
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+.saved-item > span:last-child {
+  min-width: 0;
+}
+.saved-remove {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin-right: 4px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+.saved-remove:hover {
+  color: #e0665c;
+  background: var(--bg-elevated);
+}
+
+/* make room so the profile card never runs underneath the alien */
+body.is-member .profile {
+  max-height: calc(100% - 70px - 150px);
+}
+body.saved-open .profile {
+  opacity: 0;
+  pointer-events: none;
+}
+@media (max-width: 640px) {
+  .saver {
+    right: 14px;
+    bottom: 16px;
+    transform: scale(0.82);
+    transform-origin: 100% 100%;
+  }
+  .saved-panel {
+    right: 12px;
+    left: 12px;
+    width: auto;
+    bottom: 110px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .saver-alien,
+  .saver.arrive .saver-alien,
+  .saver-ring,
+  .save-circle::after {
+    animation: none;
+  }
+}
+
+/* .join-step is display:flex, which beats the [hidden] attribute — without this the
+   sign-up and log-in forms were all stacked under the intro at once */
+.join-step[hidden] {
+  display: none !important;
+}
+#join-step-login .join-title {
+  margin-bottom: 16px;
+}
+
+/* the card stays fully visible above the alien; on short windows it scrolls inside itself */
+body.is-member .profile {
+  max-height: calc(100% - 70px - 135px);
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.profile-close {
+  z-index: 2;
+}
+
+/* layering: profile card and the alien sit in front of the top bar, the Join
+   label and everything else on the map (the join modal stays on top at 60) */
+.profile {
+  z-index: 45;
+}
+.saved-panel {
+  z-index: 48;
+}
+.saver {
+  z-index: 50;
+}

@@ -2006,7 +2006,7 @@
     if (!Ctx) return; // ancient browser or no audio support, just skip sound entirely
     audioCtx = new Ctx();
     masterGain = audioCtx.createGain();
-    masterGain.gain.value = state.muted ? 0 : 7;
+    masterGain.gain.value = state.muted ? 0 : 1;
     masterGain.connect(audioCtx.destination);
   }
 
@@ -4263,12 +4263,17 @@
       list.appendChild(btn);
     });
 
+    profileShownId = id;
+    refreshSavePrompt();
+    $("profile").scrollTop = 0; // always start at the top, never half-scrolled
+
     $("profile").classList.add("open");
     $("profile").setAttribute("aria-hidden", "false");
     $("settings-panel").classList.remove("open");
   }
 
   function hideProfile() {
+    profileShownId = null;
     $("profile").classList.remove("open");
     $("profile").setAttribute("aria-hidden", "true");
   }
@@ -4637,8 +4642,7 @@
     })[0];
     if (chipEntry) {
       var countEl = chipEntry.chip.querySelector(".chip-count");
-      if (countEl)
-        countEl.textContent = String(Number(countEl.textContent) + 1);
+      if (countEl) countEl.textContent = String(Number(countEl.textContent) + 1);
     }
     updateNodeCountLabel();
 
@@ -4728,6 +4732,271 @@
       renderer.dispose();
     };
   }
+
+
+  /* =======================================================================
+     SAVE LIST — only for people who've joined. a little alien sits bottom-right
+     (bobbing + a soft ring so the eye finds him); hovering him shows the
+     "Save list" bubble, clicking opens the list. every other profile gets a
+     "save this one" circle. ids sync to the account (/api/saved) so the list
+     follows you to another laptop, with localStorage as the instant cache.
+     ======================================================================= */
+  var SAVED_KEY_PREFIX = "signals-saved:";
+  var savedIds = [];
+  var profileShownId = null; // which node the profile card is currently showing
+  var saverToastShownThisSession = false;
+  var saverToastTimer = null;
+  var saverRevealPending = false;
+
+  function savedStorageKey() {
+    return joinedNode ? SAVED_KEY_PREFIX + joinedNode.id : null;
+  }
+  function loadSavedLocal() {
+    savedIds = [];
+    var k = savedStorageKey();
+    if (!k) return;
+    try {
+      var parsed = JSON.parse(localStorage.getItem(k) || "[]");
+      if (Array.isArray(parsed)) savedIds = parsed.filter(function (x) { return typeof x === "string"; });
+    } catch (e) {}
+  }
+  function persistSaved() {
+    var k = savedStorageKey();
+    if (!k) return;
+    try {
+      localStorage.setItem(k, JSON.stringify(savedIds));
+    } catch (e) {}
+    var token = null;
+    try { token = localStorage.getItem(JOIN_TOKEN_KEY); } catch (e) {}
+    if (token) {
+      fetch("/api/saved", {
+        method: "PUT",
+        headers: { "content-type": "application/json", authorization: "Bearer " + token },
+        body: JSON.stringify({ saved: savedIds }),
+      }).catch(function () {});
+    }
+  }
+  function syncSavedFromServer() {
+    var token = null;
+    try { token = localStorage.getItem(JOIN_TOKEN_KEY); } catch (e) {}
+    if (!token) return;
+    fetch("/api/saved", { headers: { authorization: "Bearer " + token } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (body) {
+        if (!body || !Array.isArray(body.saved) || !joinedNode) return;
+        var merged = savedIds.slice();
+        body.saved.forEach(function (id) {
+          if (merged.indexOf(id) === -1) merged.push(id);
+        });
+        if (merged.length !== savedIds.length) {
+          savedIds = merged;
+          persistSaved();
+          renderSaved();
+          refreshSavePrompt();
+        }
+      })
+      .catch(function () {});
+  }
+
+  function isSaved(id) {
+    return savedIds.indexOf(id) !== -1;
+  }
+
+  function renderSaved() {
+    var list = $("saved-list");
+    var empty = $("saved-empty");
+    var count = $("saver-count");
+    if (!list) return;
+    var items = savedIds.filter(function (id) { return !!nodeById[id]; });
+    list.innerHTML = "";
+    empty.hidden = items.length > 0;
+    count.hidden = items.length === 0;
+    count.textContent = String(items.length);
+    $("saved-sub").textContent = items.length
+      ? items.length + (items.length === 1 ? " organisation" : " organisations") + " to look back on"
+      : "Organisations you want to look back on";
+    items.forEach(function (id) {
+      var node = nodeById[id];
+      var cat = CATEGORIES.filter(function (c) { return c.id === node.category; })[0];
+      var li = document.createElement("li");
+      li.className = "saved-row";
+      var open = document.createElement("button");
+      open.type = "button";
+      open.className = "saved-item";
+      var dot = document.createElement("span");
+      dot.className = "saved-dot";
+      dot.style.background = cat ? cssVar(cat.color) : "#888";
+      var wrap = document.createElement("span");
+      var nm = document.createElement("span");
+      nm.className = "saved-name";
+      nm.textContent = node.name;
+      nm.title = node.name;
+      var sec = document.createElement("span");
+      sec.className = "saved-sector";
+      sec.textContent = cat ? cat.label : "";
+      wrap.appendChild(nm);
+      wrap.appendChild(sec);
+      open.appendChild(dot);
+      open.appendChild(wrap);
+      open.addEventListener("click", function () {
+        playClickSound();
+        closeSavedPanel();
+        selectNode(id);
+      });
+      var rm = document.createElement("button");
+      rm.type = "button";
+      rm.className = "saved-remove";
+      rm.setAttribute("aria-label", "Remove " + node.name + " from save list");
+      rm.title = "Remove";
+      rm.innerHTML = "&times;";
+      rm.addEventListener("click", function () {
+        playClickSound();
+        savedIds = savedIds.filter(function (x) { return x !== id; });
+        persistSaved();
+        renderSaved();
+        refreshSavePrompt();
+      });
+      li.appendChild(open);
+      li.appendChild(rm);
+      list.appendChild(li);
+    });
+  }
+
+  function refreshSavePrompt() {
+    var box = $("profile-save");
+    if (!box) return;
+    var id = profileShownId;
+    if (!joinedNode || !id || id === joinedNode.id || !nodeById[id]) {
+      box.hidden = true;
+      return;
+    }
+    var saved = isSaved(id);
+    box.hidden = false;
+    box.classList.toggle("is-saved", saved);
+    var btn = $("profile-save-btn");
+    btn.setAttribute("aria-pressed", String(saved));
+    btn.setAttribute("aria-label", saved ? "Remove from my save list" : "Save to my save list");
+    $("profile-save-title").textContent = saved ? "Saved to your list" : "Interested in this one?";
+    $("profile-save-sub").textContent = saved
+      ? "Find it any time with the alien, bottom right."
+      : "Tap the circle to save it to your list.";
+  }
+
+  function hideSaverToast() {
+    clearTimeout(saverToastTimer);
+    var t = $("saver-toast");
+    if (t) t.hidden = true;
+  }
+  function nudgeSaver() {
+    var alien = $("saver-alien");
+    alien.classList.remove("wiggle");
+    void alien.offsetWidth;
+    alien.classList.add("wiggle");
+    setTimeout(function () { alien.classList.remove("wiggle"); }, 900);
+    if (!saverToastShownThisSession) {
+      saverToastShownThisSession = true;
+      var t = $("saver-toast");
+      t.hidden = false;
+      clearTimeout(saverToastTimer);
+      saverToastTimer = setTimeout(hideSaverToast, 6000);
+    }
+  }
+
+  function openSavedPanel() {
+    hideSaverToast();
+    renderSaved();
+    $("saved-panel").classList.add("open");
+    $("saved-panel").setAttribute("aria-hidden", "false");
+    $("saver").classList.add("open", "calm");
+    $("saver-alien").setAttribute("aria-expanded", "true");
+    document.body.classList.add("saved-open");
+    $("settings-panel").classList.remove("open");
+  }
+  function closeSavedPanel() {
+    var panel = $("saved-panel");
+    if (!panel) return;
+    panel.classList.remove("open");
+    panel.setAttribute("aria-hidden", "true");
+    $("saver").classList.remove("open");
+    $("saver-alien").setAttribute("aria-expanded", "false");
+    document.body.classList.remove("saved-open");
+  }
+
+  function revealSaver() {
+    var saver = $("saver");
+    if (!saver || !joinedNode) return;
+    saverRevealPending = false;
+    if (!saver.hidden) return;
+    saver.hidden = false;
+    saver.classList.remove("arrive");
+    void saver.offsetWidth;
+    saver.classList.add("arrive");
+  }
+
+  // called whenever login state changes (join, log in, reconnect on load, log out)
+  function onJoinedChange() {
+    document.body.classList.toggle("is-member", !!joinedNode);
+    var saver = $("saver");
+    if (!saver) return;
+    if (joinedNode) {
+      loadSavedLocal();
+      renderSaved();
+      syncSavedFromServer();
+      var overlayEl = $("join-overlay");
+      if (overlayEl && overlayEl.classList.contains("open")) {
+        // still inside the welcome modal — he drops in once it closes, so you actually see it
+        saverRevealPending = true;
+      } else {
+        revealSaver();
+      }
+    } else {
+      saverRevealPending = false;
+      closeSavedPanel();
+      hideSaverToast();
+      saver.hidden = true;
+      saver.classList.remove("arrive", "open", "calm");
+      savedIds = [];
+      renderSaved();
+    }
+    refreshSavePrompt();
+  }
+
+  (function wireSaveList() {
+    var alien = $("saver-alien");
+    if (!alien) return;
+    alien.addEventListener("click", function () {
+      playClickSound();
+      if ($("saved-panel").classList.contains("open")) closeSavedPanel();
+      else openSavedPanel();
+    });
+    $("saved-close").addEventListener("click", function () {
+      playClickSound();
+      closeSavedPanel();
+    });
+    $("profile-save-btn").addEventListener("click", function () {
+      var id = profileShownId;
+      if (!joinedNode || !id) return;
+      playClickSound();
+      if (isSaved(id)) {
+        savedIds = savedIds.filter(function (x) { return x !== id; });
+      } else {
+        savedIds.push(id);
+        nudgeSaver();
+      }
+      persistSaved();
+      renderSaved();
+      refreshSavePrompt();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeSavedPanel();
+    });
+    document.addEventListener("pointerdown", function (e) {
+      var panel = $("saved-panel");
+      if (!panel.classList.contains("open")) return;
+      if (panel.contains(e.target) || $("saver").contains(e.target)) return;
+      closeSavedPanel();
+    });
+  })();
 
   (function wireJoinFlow() {
     var overlay = $("join-overlay");
@@ -4878,6 +5147,7 @@
         if (accountRow) accountRow.hidden = true;
         if (accountHeading) accountHeading.hidden = true;
       }
+      onJoinedChange();
     }
 
     if (logoutBtn) {
@@ -4904,8 +5174,7 @@
       overlay.setAttribute("aria-hidden", "false");
       playClickSound();
       if (step === stepDone) startPreview($("join-done-canvas"));
-      else if (!step || step === stepIntro)
-        startPreview($("join-astronaut-canvas"));
+      else if (!step || step === stepIntro) startPreview($("join-astronaut-canvas"));
     }
 
     function closeOverlay() {
@@ -4913,6 +5182,7 @@
       overlay.setAttribute("aria-hidden", "true");
       stopPreviews();
       playClickSound();
+      if (saverRevealPending) revealSaver();
     }
 
     joinBtn.addEventListener("click", function () {
@@ -4928,19 +5198,63 @@
       if (e.target === overlay) closeOverlay();
     });
     document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && overlay.classList.contains("open"))
-        closeOverlay();
+      if (e.key === "Escape" && overlay.classList.contains("open")) closeOverlay();
     });
+
+    // sign-up is two short steps: about the organisation, then the login details
+    function showFormPane(n) {
+      $("join-pane-1").hidden = n !== 1;
+      $("join-pane-2").hidden = n !== 2;
+      $("join-dot-1").classList.toggle("on", n === 1);
+      $("join-dot-2").classList.toggle("on", n === 2);
+      $("join-form-title").textContent =
+        n === 1 ? "About your organisation" : "Create your login";
+      $("join-form-sub").textContent = "Step " + n + " of 2";
+    }
+    function openSignupForm() {
+      stopPreviews();
+      showFormPane(1);
+      showStep(stepForm);
+    }
+    function goToPane2() {
+      var err = $("join-pane1-error");
+      err.hidden = true;
+      if (!$("join-name").value.trim()) {
+        err.textContent = "Add your organisation's name to continue.";
+        err.hidden = false;
+        $("join-name").focus();
+        return;
+      }
+      var site = $("join-website");
+      if (site.value && !site.checkValidity()) {
+        err.textContent = "That website doesn't look right. Start it with https://";
+        err.hidden = false;
+        site.focus();
+        return;
+      }
+      playClickSound();
+      showFormPane(2);
+      $("join-email").focus();
+    }
 
     $("join-start-btn").addEventListener("click", function () {
       playClickSound();
-      stopPreviews();
-      showStep(stepForm);
+      openSignupForm();
     });
     $("join-have-account-btn").addEventListener("click", function () {
       playClickSound();
       stopPreviews();
       showStep(stepLogin);
+      $("login-email").focus();
+    });
+    $("login-new-btn").addEventListener("click", function () {
+      playClickSound();
+      openSignupForm();
+    });
+    $("join-next-btn").addEventListener("click", goToPane2);
+    $("join-pane2-back-btn").addEventListener("click", function () {
+      playClickSound();
+      showFormPane(1);
     });
     $("join-form-back-btn").addEventListener("click", function () {
       playClickSound();
@@ -4961,8 +5275,17 @@
 
     $("join-step-form").addEventListener("submit", function (e) {
       e.preventDefault();
+      if (!$("join-pane-1").hidden) {
+        goToPane2(); // pressing Enter on step 1 just moves to step 2
+        return;
+      }
       var errEl = $("join-form-error");
       errEl.hidden = true;
+      if (!$("join-email").checkValidity() || !$("join-password").checkValidity()) {
+        errEl.textContent = "Enter a valid email and a password of at least 6 characters.";
+        errEl.hidden = false;
+        return;
+      }
       var submitBtn = $("join-submit-btn");
       submitBtn.disabled = true;
 
@@ -5028,8 +5351,7 @@
           setJoined(body.token, body.node);
           stopPreviews();
           $("join-done-title").textContent = "Welcome back, " + body.node.name;
-          $("join-done-sub").textContent =
-            "Here's your spot on the constellation.";
+          $("join-done-sub").textContent = "Here's your spot on the constellation.";
           showStep(stepDone);
           startPreview($("join-done-canvas"));
         })
