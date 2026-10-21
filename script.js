@@ -4118,7 +4118,7 @@
     var isOpen = legendEl.classList.contains("open");
     var hoveredNode = state.hoveredId ? nodeById[state.hoveredId] : null;
 
-    if (isOpen || !hoveredNode) {
+    if (state.focusMode || isOpen || !hoveredNode) {
       hoverChipEl.classList.remove("visible");
       return;
     }
@@ -4158,6 +4158,8 @@
       playCloseSound(); // softer tone backing out to the full map
     }
     refreshPointAttributes();
+    updateLegendHoverChip();
+    updateLegendChipHighlight();
   }
 
   function showProfile(id) {
