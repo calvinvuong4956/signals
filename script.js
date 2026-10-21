@@ -2789,7 +2789,7 @@
     ]);
 
     var material = new THREE_.LineDashedMaterial({
-      color: 0xffffff,
+      color: 0x67e8f9,
       transparent: true,
       opacity: 0.9,
       dashSize: 3,
