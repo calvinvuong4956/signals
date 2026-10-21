@@ -20,7 +20,8 @@
 
     if (
       mode !== "creation" &&
-      typeof updateGhostConnectionHover === "function"
+      typeof updateGhostConnectionHover === "function" &&
+      Array.isArray(speculativeConnections)
     ) {
       updateGhostConnectionHover(null);
     }
