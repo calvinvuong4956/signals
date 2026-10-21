@@ -2557,11 +2557,21 @@
     lineBase.visible = !state.focusMode;
     // In Focused View, only show ghost connections
     // belonging to the selected star.
+    // All stars visible in the current focused network.
+    var visibleNodeIds = new Set();
+
+    if (state.focusMode && state.selectedId != null) {
+      visibleNodeIds = getAllConnectedNodeIds(state.selectedId);
+      visibleNodeIds.add(state.selectedId);
+    }
+
     speculativeConnections.forEach(function (connection) {
+      // Show a ghost connection when BOTH endpoints
+      // belong to the currently visible network.
       var visible =
         !state.focusMode ||
-        connection.fromId === state.selectedId ||
-        connection.toId === state.selectedId;
+        (visibleNodeIds.has(connection.fromId) &&
+          visibleNodeIds.has(connection.toId));
 
       connection.line.visible = visible;
 
