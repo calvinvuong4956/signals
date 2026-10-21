@@ -2599,7 +2599,7 @@
   function pickNodeAt(px, py) {
     constellation.updateMatrixWorld(true);
     var best = null,
-      bestDist = 26; // px threshold
+      bestDist = 14; // px threshold
     NODES.forEach(function (node) {
       if (!isNodePickable(node)) return;
       var s = projectNode(node);
