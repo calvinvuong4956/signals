@@ -1173,27 +1173,37 @@ body.list-active .hint {
   border-color: var(--text);
 }
 
-/* Small mode indicator */
+/* Star mode indicator */
 
 .mode-indicator {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
+  width: 13px;
+  height: 13px;
   background: var(--text-dim);
+  clip-path: polygon(
+    50% 0%,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
   flex-shrink: 0;
 }
 
 /* Active creation mode */
 
-body.creation-mode #network-mode-btn {
+/* body.creation-mode #network-mode-btn {
   border-color: var(--text);
-}
+} */
 
 body.creation-mode .mode-indicator {
-  background: #80d8b0;
-  box-shadow: 0 0 10px rgba(128, 216, 176, 0.5);
+  background: #00ff99;
+  filter: drop-shadow(0 0 6px rgba(57, 255, 182, 0.95));
 }
-
 /* Introductory modal overlay */
 
 #network-mode-overlay {
