@@ -9,7 +9,7 @@
 // Local dev:   deno task start   (see deno.json)
 // Deploy:      deployctl deploy / the existing "aliens-signals" Deno Deploy app
 
-const ROOT = new URL(".", import.meta.url).pathname;
+const ROOT = decodeURIComponent(new URL(".", import.meta.url).pathname);
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",

@@ -3,6 +3,102 @@
 
 (function () {
   "use strict";
+  // ========================================
+  // NETWORK MODES
+  // ========================================
+
+  var networkMode = "normal";
+
+  var modeButton = document.getElementById("network-mode-btn");
+  var modeLabel = document.getElementById("network-mode-label");
+  var modeOverlay = document.getElementById("network-mode-overlay");
+  var modeStart = document.getElementById("network-mode-start");
+  var modeCancel = document.getElementById("network-mode-cancel");
+
+  function setNetworkMode(mode) {
+    networkMode = mode;
+
+    if (
+      mode !== "creation" &&
+      typeof updateGhostConnectionHover === "function" &&
+      Array.isArray(speculativeConnections)
+    ) {
+      updateGhostConnectionHover(null);
+    }
+
+    var isCreation = networkMode === "creation";
+
+    document.body.classList.toggle("creation-mode", isCreation);
+    updateResetConnectionsVisibility();
+
+    modeLabel.textContent = isCreation
+      ? "Return to Normal Mode"
+      : "Network Creation Mode";
+
+    modeButton.setAttribute("aria-pressed", String(isCreation));
+
+    console.log("Network mode:", networkMode);
+  }
+  // TEMPORARY: Start in Creation Mode for testing
+  setNetworkMode("normal");
+
+  function openNetworkModeIntro() {
+    modeOverlay.classList.add("open");
+    modeOverlay.setAttribute("aria-hidden", "false");
+
+    // Restart the tutorial animation from the beginning
+    var ghostDemo = document.querySelector(".ghost-demo");
+
+    if (ghostDemo) {
+      var animatedElements = ghostDemo.querySelectorAll(
+        ".ghost-demo-star, .ghost-demo-cursor, .ghost-demo-origin, .ghost-demo-line",
+      );
+
+      animatedElements.forEach(function (element) {
+        element.getAnimations().forEach(function (animation) {
+          animation.currentTime = 0;
+          animation.play();
+        });
+      });
+    }
+
+    modeStart.focus();
+  }
+
+  function closeNetworkModeIntro() {
+    modeOverlay.classList.remove("open");
+    modeOverlay.setAttribute("aria-hidden", "true");
+    modeButton.focus();
+  }
+
+  modeButton.addEventListener("click", function () {
+    if (networkMode === "normal") {
+      openNetworkModeIntro();
+    } else {
+      setNetworkMode("normal");
+    }
+  });
+
+  modeStart.addEventListener("click", function () {
+    closeNetworkModeIntro();
+    setNetworkMode("creation");
+  });
+
+  modeCancel.addEventListener("click", function () {
+    closeNetworkModeIntro();
+  });
+
+  modeOverlay.addEventListener("click", function (event) {
+    if (event.target === modeOverlay) {
+      closeNetworkModeIntro();
+    }
+  });
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && modeOverlay.classList.contains("open")) {
+      closeNetworkModeIntro();
+    }
+  });
 
   // 1. DATA — this is the real dataset now (136 orgs, 16 sectors), edit the arrays below if TLaWC sends updates
   var CATEGORIES = [
@@ -1897,7 +1993,7 @@
     state.activeCats[c.id] = true;
   });
 
-  // ---- space-themed sound fx — synthesised with Web Audio, background hum is a looped mp3 ----
+  // ---- space-themed sound fx — all synthesised with Web Audio, no mp3s to ship ----
   var MUTE_KEY = "signals-muted";
   state.muted = localStorage.getItem(MUTE_KEY) === "1";
 
@@ -2009,6 +2105,7 @@
 
   function enterFocus(id) {
     state.focusMode = true;
+    updateResetConnectionsVisibility();
     document.body.classList.add("focus-active");
     var local = layout[id];
     var rotated = local.clone().applyEuler(constellation.rotation);
@@ -2025,6 +2122,7 @@
 
   function exitFocus() {
     state.focusMode = false;
+    updateResetConnectionsVisibility();
     document.body.classList.remove("focus-active");
     targetGroupPos.set(0, 0, 0);
     targetCameraZ = OVERVIEW_CAMERA_Z;
@@ -2256,7 +2354,7 @@
       colors[i * 3] = c.r;
       colors[i * 3 + 1] = c.g;
       colors[i * 3 + 2] = c.b;
-      sizes[i] = 6 + node.degree * 1.1;
+      sizes[i] = 6 + Math.min(node.degree, 6) * 1.6;
       highlight[i] = 0;
       // member nodes get rendered as the floating astronaut model instead of a flat dot —
       // keep the point in the buffer (picking/lines/legend all key off it) but invisible
@@ -2340,8 +2438,11 @@
     }
     var arr = [];
     var focusPos = layout[focusId];
+    // Draw orange lines ONLY for established connections.
+    // Ghost connections keep their own cyan dashed lines.
     nodeById[focusId].linked.forEach(function (otherId) {
       var p = layout[otherId];
+
       arr.push(focusPos.x, focusPos.y, focusPos.z, p.x, p.y, p.z);
     });
     lineHighlight.geometry.setAttribute(
@@ -2375,7 +2476,7 @@
       return;
     }
     var ids = [state.selectedId].concat(
-      Array.from(nodeById[state.selectedId].linked),
+      Array.from(getAllConnectedNodeIds(state.selectedId)),
     );
     ids.forEach(function (id, i) {
       var el = getConnLabelEl(i);
@@ -2413,7 +2514,7 @@
       var i = node._idx;
       if (state.focusMode && state.selectedId) {
         var isSelf = node.id === state.selectedId;
-        var isNeighbor = nodeById[state.selectedId].linked.has(node.id);
+        var isNeighbor = getAllConnectedNodeIds(state.selectedId).has(node.id);
         vis[i] = isSelf || isNeighbor ? 1 : 0;
         hi[i] = isSelf ? 1 : isNeighbor ? 0.55 : 0;
       } else {
@@ -2483,6 +2584,53 @@
     pointCloud.material.uniforms.uDim.value =
       focusId || state.focusMode ? 1 : 0;
     lineBase.visible = !state.focusMode;
+    // In Focused View, only show ghost connections
+    // belonging to the selected star.
+    // All stars visible in the current focused network.
+    var visibleNodeIds = new Set();
+
+    if (state.focusMode && state.selectedId != null) {
+      visibleNodeIds = getAllConnectedNodeIds(state.selectedId);
+      visibleNodeIds.add(state.selectedId);
+    }
+
+    speculativeConnections.forEach(function (connection) {
+      // Show a ghost connection when BOTH endpoints
+      // belong to the currently visible network.
+      var fromNode = nodeById[connection.fromId];
+      var toNode = nodeById[connection.toId];
+
+      var searching = state.query.trim().length > 0;
+
+      var matchesSearch =
+        !searching ||
+        (matchesQuery(fromNode, state.query) &&
+          matchesQuery(toNode, state.query));
+
+      var matchesSectors =
+        state.activeCats[fromNode.category] &&
+        state.activeCats[toNode.category];
+
+      var visible =
+        matchesSearch &&
+        matchesSectors &&
+        (!state.focusMode ||
+          (visibleNodeIds.has(connection.fromId) &&
+            visibleNodeIds.has(connection.toId)));
+
+      connection.line.visible = visible;
+
+      // Keep the hover halo consistent.
+      if (connection.glowLine) {
+        connection.glowLine.visible = visible;
+      }
+
+      if (connection.glowSprites) {
+        connection.glowSprites.forEach(function (sprite) {
+          sprite.visible = visible && sprite.material.opacity > 0.005;
+        });
+      }
+    });
     updateHighlightLines();
     updateConnLabels();
     needsRender = true;
@@ -2519,7 +2667,7 @@
     if (state.focusMode && state.selectedId) {
       return (
         node.id === state.selectedId ||
-        nodeById[state.selectedId].linked.has(node.id)
+        getAllConnectedNodeIds(state.selectedId).has(node.id)
       );
     }
     if (!state.activeCats[node.category]) return false;
@@ -2530,7 +2678,7 @@
   function pickNodeAt(px, py) {
     constellation.updateMatrixWorld(true);
     var best = null,
-      bestDist = 26; // px threshold
+      bestDist = networkMode === "creation" ? 22 : 14; // px threshold (a bit more forgiving when you're grabbing stars to drag)
     NODES.forEach(function (node) {
       if (!isNodePickable(node)) return;
       var s = projectNode(node);
@@ -2546,7 +2694,937 @@
     return best;
   }
 
+  // ========================================
+  // CREATION MODE: MOVE INDIVIDUAL STARS
+  // ========================================
+
+  function moveStarTo(node, newPosition) {
+    // Update the stored 3D position.
+    layout[node.id].copy(newPosition);
+
+    // Update the visible star.
+    var pointPositions = pointCloud.geometry.attributes.position;
+
+    pointPositions.setXYZ(
+      node._idx,
+      newPosition.x,
+      newPosition.y,
+      newPosition.z,
+    );
+
+    pointPositions.needsUpdate = true;
+    pointCloud.geometry.computeBoundingSphere();
+
+    // Update existing connections attached to this star.
+    var linePositions = lineBase.geometry.attributes.position;
+
+    EDGES.forEach(function (edge, index) {
+      if (edge.a !== node.id && edge.b !== node.id) return;
+
+      var a = layout[edge.a];
+      var b = layout[edge.b];
+
+      linePositions.setXYZ(index * 2, a.x, a.y, a.z);
+      linePositions.setXYZ(index * 2 + 1, b.x, b.y, b.z);
+    });
+
+    linePositions.needsUpdate = true;
+    lineBase.geometry.computeBoundingSphere();
+
+    // Keep highlighted connections in sync.
+    updateHighlightLines();
+    lineHighlight.geometry.computeBoundingSphere();
+
+    if (state.focusMode) {
+      updateFocusPivot();
+      updateConnLabels();
+    }
+
+    needsRender = true;
+  }
+
+  // ========================================
+  // CREATION MODE: STAR OVERLAP DETECTION
+  // ========================================
+
+  var STAR_OVERLAP_RADIUS = 28; // pixels
+
+  function findOverlappingStar(draggedNode) {
+    // Ensure projected positions are current.
+    constellation.updateMatrixWorld(true);
+    camera.updateMatrixWorld(true);
+
+    var draggedScreenPos = projectNode(draggedNode);
+
+    var closestNode = null;
+    var closestDistance = STAR_OVERLAP_RADIUS;
+
+    NODES.forEach(function (node) {
+      // Don't allow a star to overlap itself.
+      if (node.id === draggedNode.id) return;
+
+      // Ignore hidden or filtered-out stars.
+      if (!isNodePickable(node)) return;
+
+      var screenPos = projectNode(node);
+
+      // Ignore stars outside the visible depth range.
+      if (screenPos.z < -1 || screenPos.z > 1) return;
+
+      var dx = screenPos.x - draggedScreenPos.x;
+      var dy = screenPos.y - draggedScreenPos.y;
+
+      var distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestNode = node;
+      }
+    });
+
+    return closestNode;
+  }
+
+  // ========================================
+  // CREATION MODE: SPECULATIVE CONNECTIONS
+  // ========================================
+
+  function createGhostGlowTexture() {
+    var canvas = document.createElement("canvas");
+    canvas.width = 128;
+    canvas.height = 128;
+
+    var ctx = canvas.getContext("2d");
+
+    var gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+
+    gradient.addColorStop(0, "rgba(103,232,249,0.7)");
+    gradient.addColorStop(0.2, "rgba(103,232,249,0.35)");
+    gradient.addColorStop(0.55, "rgba(103,232,249,0.08)");
+    gradient.addColorStop(1, "rgba(103,232,249,0)");
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 128, 128);
+
+    return new THREE_.CanvasTexture(canvas);
+  }
+
+  var ghostGlowTexture = createGhostGlowTexture();
+  var speculativeConnections = [];
+  // Show Reset Connections only when it is relevant.
+  function updateResetConnectionsVisibility() {
+    var button = document.getElementById("reset-speculative-connections");
+
+    if (!button) return;
+
+    var starList = document.getElementById("list-view");
+
+    var listIsOpen = starList && starList.classList.contains("active");
+
+    var shouldShow =
+      networkMode === "creation" &&
+      !state.focusMode &&
+      !listIsOpen &&
+      Array.isArray(speculativeConnections) &&
+      speculativeConnections.length > 0;
+
+    button.style.display = shouldShow ? "block" : "none";
+  }
+  // Returns the IDs of all stars connected to this star,
+  // including original and ghost connections.
+  function getAllConnectedNodeIds(id) {
+    var connected = new Set(nodeById[id].linked);
+
+    speculativeConnections.forEach(function (connection) {
+      if (connection.fromId === id) {
+        connected.add(connection.toId);
+      }
+
+      if (connection.toId === id) {
+        connected.add(connection.fromId);
+      }
+    });
+
+    return connected;
+  }
+  var starReturnAnimations = [];
+
+  function generateConnectionDescription(nodeA, nodeB) {
+    // Each theme has a concrete project idea, not just a topic.
+    var themes = [
+      {
+        id: "housing",
+        words: ["housing", "homeless", "renter", "rent", "property"],
+        subject: "housing access and affordability",
+        projects: [
+          "a community housing needs assessment",
+          "a practical housing affordability toolkit",
+          "a pilot programme supporting people experiencing housing insecurity",
+        ],
+      },
+      {
+        id: "education",
+        words: ["education", "school", "learning", "training", "student"],
+        subject: "education and skills development",
+        projects: [
+          "a series of community learning workshops",
+          "an accessible professional development programme",
+          "a shared educational resource for local communities",
+        ],
+      },
+      {
+        id: "culture",
+        words: ["art", "cultur", "creative", "museum", "theatre", "dance"],
+        subject: "arts and cultural participation",
+        projects: [
+          "a participatory arts programme",
+          "a community exhibition and public conversation series",
+          "a creative engagement project highlighting local experiences",
+        ],
+      },
+      {
+        id: "media",
+        words: ["media", "journalis", "news", "broadcast", "publishing"],
+        subject: "public-interest communication",
+        projects: [
+          "a public-interest storytelling series",
+          "a community information campaign",
+          "a collaborative reporting and public education project",
+        ],
+      },
+      {
+        id: "policy",
+        words: ["policy", "government", "regulat", "legislat", "governance"],
+        subject: "public policy and governance",
+        projects: [
+          "a joint policy discussion paper",
+          "a series of public policy roundtables",
+          "a practical set of recommendations for decision-makers",
+        ],
+      },
+      {
+        id: "technology",
+        words: ["technolog", "digital", "innovation", "software", "design lab"],
+        subject: "digital innovation",
+        projects: [
+          "a prototype digital community resource",
+          "a user-centred service design pilot",
+          "an accessible digital participation tool",
+        ],
+      },
+      {
+        id: "first-nations",
+        words: [
+          "first nations",
+          "aboriginal",
+          "torres strait",
+          "traditional owner",
+          "truth-telling",
+          "treaty",
+          "indigenous",
+        ],
+        subject: "First Nations priorities and self-determination",
+        projects: [
+          "a First Nations-led consultation and knowledge-sharing initiative",
+          "a community-directed public education programme",
+          "a collaborative project guided by First Nations cultural authority",
+        ],
+      },
+      {
+        id: "community",
+        words: ["community", "welfare", "social", "wellbeing", "inclusion"],
+        subject: "community wellbeing",
+        projects: [
+          "a local community needs assessment",
+          "an inclusive community participation programme",
+          "a shared resource connecting people with support services",
+        ],
+      },
+    ];
+
+    function getText(node) {
+      var category = CATEGORIES.find(function (c) {
+        return c.id === node.category;
+      });
+
+      return [
+        node.name,
+        node.role,
+        node.description,
+        category ? category.label : "",
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+    }
+
+    function getMatches(node) {
+      var text = getText(node);
+
+      return themes
+        .map(function (theme) {
+          var score = theme.words.reduce(function (total, word) {
+            return total + (text.includes(word) ? 1 : 0);
+          }, 0);
+
+          return { theme: theme, score: score };
+        })
+        .filter(function (result) {
+          return result.score > 0;
+        })
+        .sort(function (a, b) {
+          return b.score - a.score;
+        });
+    }
+
+    function getStrength(node) {
+      var text = getText(node);
+
+      if (/research|university|evidence|data|analysis/.test(text)) {
+        return {
+          expertise: "research and evidence-building",
+          contribution: "provide research and evidence to guide the project",
+        };
+      }
+
+      if (/advocacy|campaign|rights|union|represent/.test(text)) {
+        return {
+          expertise: "advocacy and representation",
+          contribution:
+            "connect the project with advocacy priorities and community perspectives",
+        };
+      }
+
+      if (/design|creative|studio|innovation/.test(text)) {
+        return {
+          expertise: "creative problem-solving and design",
+          contribution: "develop engaging, practical approaches to the project",
+        };
+      }
+
+      if (/government|policy|regulat|statutory/.test(text)) {
+        return {
+          expertise: "policy and institutional knowledge",
+          contribution:
+            "help translate the project's findings into policy discussions",
+        };
+      }
+
+      if (/media|journalis|news|broadcast|publication/.test(text)) {
+        return {
+          expertise: "communication and storytelling",
+          contribution: "communicate the project's findings to wider audiences",
+        };
+      }
+
+      if (/service|support|community|welfare/.test(text)) {
+        return {
+          expertise: "community engagement and service delivery",
+          contribution:
+            "help shape the project around practical community needs",
+        };
+      }
+
+      return {
+        expertise: "sector knowledge and professional networks",
+        contribution: "contribute specialist knowledge and relevant networks",
+      };
+    }
+
+    // Consistent variation: the same pair gets the same suggestion.
+    function pairNumber() {
+      var key = [nodeA.id, nodeB.id].sort().join("|");
+      var hash = 0;
+
+      for (var i = 0; i < key.length; i++) {
+        hash = (Math.imul(hash, 31) + key.charCodeAt(i)) | 0;
+      }
+
+      return hash >>> 0;
+    }
+
+    var seed = pairNumber();
+    var matchesA = getMatches(nodeA);
+    var matchesB = getMatches(nodeB);
+
+    var strengthA = getStrength(nodeA);
+    var strengthB = getStrength(nodeB);
+
+    var shared = matchesA.find(function (a) {
+      return matchesB.some(function (b) {
+        return a.theme.id === b.theme.id;
+      });
+    });
+
+    var themeA = matchesA.length ? matchesA[0].theme : null;
+    var themeB = matchesB.length ? matchesB[0].theme : null;
+
+    var mainTheme = shared ? shared.theme : themeA || themeB || themes[7];
+
+    var project = mainTheme.projects[seed % mainTheme.projects.length];
+
+    var introductions = [
+      "One possibility would be",
+      "A promising starting point could be",
+      "These organisations could explore",
+      "An opportunity worth investigating is",
+    ];
+
+    var introduction = introductions[seed % introductions.length];
+
+    var idea = introduction + " " + project + ".";
+
+    // Explain why THIS particular pairing could be useful.
+    var reasoning;
+
+    if (shared) {
+      reasoning =
+        "Both organisations have experience relevant to " +
+        mainTheme.subject +
+        ", but could approach the challenge through their respective strengths in " +
+        strengthA.expertise +
+        " and " +
+        strengthB.expertise +
+        ".";
+    } else if (themeA && themeB) {
+      reasoning =
+        "This could connect " +
+        themeA.subject +
+        " with " +
+        themeB.subject +
+        ", allowing the organisations to approach an issue from different perspectives.";
+    } else {
+      reasoning =
+        "The organisations could bring together their different areas of expertise to explore a shared community challenge.";
+    }
+
+    var contributions =
+      nodeA.name +
+      " could " +
+      strengthA.contribution +
+      ", while " +
+      nodeB.name +
+      " could " +
+      strengthB.contribution +
+      ".";
+
+    var ending = [
+      "The first step could be a small joint workshop to identify a realistic pilot.",
+      "A short exploratory project could help test whether the partnership would be useful.",
+      "The organisations could begin by identifying shared priorities and the communities they aim to serve.",
+      "A preliminary discussion could establish where their capabilities genuinely complement each other.",
+    ];
+
+    var caution =
+      mainTheme.id === "first-nations"
+        ? " Any project involving First Nations knowledge or communities would need to be First Nations-led, with appropriate consent and cultural authority."
+        : "";
+
+    return (
+      idea +
+      " " +
+      reasoning +
+      " " +
+      contributions +
+      " " +
+      ending[(seed >>> 3) % ending.length] +
+      caution
+    );
+  }
+
+  // ========================================
+  // RESET SPECULATIVE CONNECTIONS
+  // ========================================
+
+  function resetSpeculativeConnections() {
+    // Clear the currently hovered ghost connection.
+    hoveredGhostConnection = null;
+
+    // Close any open ghost description.
+    closeGhostDescription();
+
+    speculativeConnections.forEach(function (connection) {
+      // Remove the original dashed line.
+      constellation.remove(connection.line);
+
+      // Remove the extra glow line.
+      if (connection.glowLine) {
+        constellation.remove(connection.glowLine);
+        connection.glowLine.material.dispose();
+      }
+
+      // Remove every halo sprite.
+      if (connection.glowSprites) {
+        connection.glowSprites.forEach(function (sprite) {
+          constellation.remove(sprite);
+          sprite.material.dispose();
+        });
+
+        connection.glowSprites.length = 0;
+      }
+
+      // Dispose of the original line's resources.
+      // Its geometry may also be shared by the glow line.
+      connection.line.geometry.dispose();
+      connection.line.material.dispose();
+    });
+
+    // Completely remove the connections from the data.
+    speculativeConnections.length = 0;
+    updateResetConnectionsVisibility();
+
+    // Refresh Focused View so ghost-connected stars
+    // no longer count as neighbours.
+    refreshPointAttributes();
+    updateHighlightLines();
+    updateConnLabels();
+
+    needsRender = true;
+
+    console.log("All speculative connections fully reset.");
+  }
+
+  // ========================================
+  // TEMPORARY RESET BUTTON
+  // ========================================
+
+  var resetConnectionsButton = document.createElement("button");
+
+  resetConnectionsButton.textContent = "Reset Connections";
+  resetConnectionsButton.id = "reset-speculative-connections";
+
+  Object.assign(resetConnectionsButton.style, {
+    position: "relative",
+    bottom: "auto",
+    left: "auto",
+    zIndex: "9999",
+    padding: "10px 16px",
+    background: "#111827",
+    color: "#67e8f9",
+    border: "1px solid #67e8f9",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    fontSize: "12px",
+  });
+
+  resetConnectionsButton.addEventListener("click", function () {
+    resetSpeculativeConnections();
+  });
+
+  document
+    .getElementById("network-mode-controls")
+    .appendChild(resetConnectionsButton);
+  resetConnectionsButton.style.display = "none";
+  updateResetConnectionsVisibility();
+
+  var SPECULATIVE_LINE_DURATION = 550;
+  var STAR_RETURN_DURATION = 650;
+
+  function easeOutCubic(t) {
+    return 1 - Math.pow(1 - t, 3);
+  }
+
+  function createSpeculativeConnection(fromNode, toNode, fromPosition) {
+    // Prevent ghost connections between stars that
+    // already have an established connection.
+    if (fromNode.linked.has(toNode.id)) {
+      console.log(
+        "Ghost connection blocked: established connection already exists.",
+        fromNode.name,
+        "↔",
+        toNode.name,
+      );
+
+      return;
+    }
+    // Prevent duplicate connections in either direction.
+    var exists = speculativeConnections.some(function (connection) {
+      return (
+        (connection.fromId === fromNode.id && connection.toId === toNode.id) ||
+        (connection.fromId === toNode.id && connection.toId === fromNode.id)
+      );
+    });
+
+    if (exists) {
+      console.log("Speculative connection already exists.");
+      return;
+    }
+
+    var start = fromPosition.clone();
+    var end = layout[toNode.id].clone();
+
+    var geometry = new THREE_.BufferGeometry().setFromPoints([
+      start,
+      start.clone(),
+    ]);
+
+    var material = new THREE_.LineDashedMaterial({
+      color: 0x67e8f9,
+      transparent: true,
+      opacity: 0.9,
+      dashSize: 3,
+      gapSize: 2,
+      depthWrite: false,
+    });
+
+    var line = new THREE_.Line(geometry, material);
+    line.frustumCulled = false;
+
+    constellation.add(line);
+
+    // Soft cyan halo behind the dashed line.
+    var glowMaterial = new THREE_.LineBasicMaterial({
+      color: 0x67e8f9,
+      transparent: true,
+      opacity: 0,
+      blending: THREE_.AdditiveBlending,
+      depthWrite: false,
+    });
+
+    var glowLine = new THREE_.Line(geometry, glowMaterial);
+    glowLine.frustumCulled = false;
+    glowLine.renderOrder = -1;
+
+    constellation.add(glowLine);
+
+    var glowSprites = [];
+
+    for (var i = 0; i < 12; i++) {
+      var spriteMaterial = new THREE_.SpriteMaterial({
+        map: ghostGlowTexture,
+        color: 0x67e8f9,
+        transparent: true,
+        opacity: 0,
+        blending: THREE_.AdditiveBlending,
+        depthWrite: false,
+      });
+
+      var sprite = new THREE_.Sprite(spriteMaterial);
+      sprite.position.copy(start.clone().lerp(end, i / 11));
+      sprite.scale.set(8, 8, 1);
+      sprite.visible = false;
+
+      constellation.add(sprite);
+      glowSprites.push(sprite);
+    }
+
+    speculativeConnections.push({
+      glowLine: glowLine,
+      glowSprites: glowSprites,
+      fromId: fromNode.id,
+      toId: toNode.id,
+      line: line,
+      start: start,
+      end: end,
+      startTime: performance.now(),
+      complete: false,
+      description: generateConnectionDescription(fromNode, toNode),
+    });
+    updateResetConnectionsVisibility();
+
+    console.log(
+      "Speculative connection created:",
+      fromNode.name,
+      "↔",
+      toNode.name,
+    );
+
+    needsRender = true;
+  }
+  function closeGhostDescription() {
+    var panel = document.getElementById("ghost-description-panel");
+    panel.classList.remove("open");
+    panel.setAttribute("aria-hidden", "true");
+  }
+
+  function openGhostDescription(connection) {
+    var fromNode = nodeById[connection.fromId];
+    var toNode = nodeById[connection.toId];
+
+    if (!fromNode || !toNode) return;
+
+    document.getElementById("ghost-description-title").textContent =
+      fromNode.name + " × " + toNode.name;
+
+    // Show the sectors of both connected organisations
+    var sectorsEl = document.getElementById("ghost-description-sectors");
+    sectorsEl.replaceChildren();
+
+    function addGhostSector(node) {
+      var category = CATEGORIES.find(function (cat) {
+        return cat.id === node.category;
+      });
+
+      if (!category) return;
+
+      var sector = document.createElement("span");
+      sector.className = "ghost-sector";
+
+      var dot = document.createElement("span");
+      dot.className = "ghost-sector-dot";
+      dot.style.backgroundColor = category.hex;
+
+      var label = document.createElement("span");
+      label.textContent = category.label;
+
+      sector.appendChild(dot);
+      sector.appendChild(label);
+      sectorsEl.appendChild(sector);
+    }
+
+    addGhostSector(fromNode);
+
+    var separator = document.createElement("span");
+    separator.className = "ghost-sector-separator";
+    separator.textContent = "×";
+    sectorsEl.appendChild(separator);
+
+    addGhostSector(toNode);
+
+    document.getElementById("ghost-description-text").textContent =
+      connection.description;
+
+    var panel = document.getElementById("ghost-description-panel");
+    panel.classList.add("open");
+    panel.setAttribute("aria-hidden", "false");
+  }
+
+  document
+    .getElementById("ghost-description-close")
+    .addEventListener("click", closeGhostDescription);
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") closeGhostDescription();
+  });
+
+  // ========================================
+  // GHOST CONNECTION HOVER HIGHLIGHT
+  // ========================================
+
+  var hoveredGhostConnection = null;
+
+  var GHOST_NORMAL_COLOR = new THREE_.Color(0x67e8f9);
+  var GHOST_HOVER_COLOR = new THREE_.Color(0xffffff);
+
+  function updateGhostConnectionHover(connection) {
+    // Ignore references to connections that have been reset.
+    if (connection && !speculativeConnections.includes(connection)) {
+      connection = null;
+    }
+    if (hoveredGhostConnection === connection) return;
+
+    hoveredGhostConnection = connection;
+
+    speculativeConnections.forEach(function (ghost) {
+      ghost.line.material.userData.hoverTarget = ghost === connection ? 1 : 0;
+    });
+
+    needsRender = true;
+  }
+
+  function animateGhostConnectionHover() {
+    var animating = false;
+
+    speculativeConnections.forEach(function (ghost) {
+      var material = ghost.line.material;
+
+      var target = material.userData.hoverTarget || 0;
+      var current = material.userData.hoverAmount || 0;
+
+      // Smooth transition toward the target brightness.
+      var next = current + (target - current) * 0.18;
+
+      if (Math.abs(target - next) < 0.005) {
+        next = target;
+      } else {
+        animating = true;
+      }
+
+      material.userData.hoverAmount = next;
+
+      // Blend between normal cyan and bright white.
+      material.color.copy(GHOST_NORMAL_COLOR).lerp(GHOST_HOVER_COLOR, next);
+
+      // Increase opacity when hovered.
+      material.opacity = 0.9 + next * 0.1;
+      // Fade the soft cyan halo in and out.
+      if (ghost.glowLine) {
+        ghost.glowLine.material.opacity = next * 0.2;
+      }
+
+      if (ghost.glowSprites) {
+        ghost.glowSprites.forEach(function (sprite) {
+          sprite.visible = next > 0.005;
+          sprite.material.opacity = next * 0.16;
+        });
+      }
+    });
+
+    if (animating) needsRender = true;
+  }
+
+  function pickGhostConnection(clientX, clientY) {
+    if (networkMode !== "creation") return null;
+
+    var rect = renderer.domElement.getBoundingClientRect();
+    var px = clientX - rect.left;
+    var py = clientY - rect.top;
+
+    constellation.updateMatrixWorld(true);
+    camera.updateMatrixWorld(true);
+
+    var closest = null;
+    var closestDistance = 12;
+
+    speculativeConnections.forEach(function (connection) {
+      if (!connection.line.visible) return;
+      if (!connection.complete) return;
+
+      var a = connection.start
+        .clone()
+        .applyMatrix4(constellation.matrixWorld)
+        .project(camera);
+
+      var b = connection.end
+        .clone()
+        .applyMatrix4(constellation.matrixWorld)
+        .project(camera);
+
+      if (a.z < -1 || a.z > 1 || b.z < -1 || b.z > 1) return;
+
+      var ax = ((a.x + 1) * rect.width) / 2;
+      var ay = ((1 - a.y) * rect.height) / 2;
+      var bx = ((b.x + 1) * rect.width) / 2;
+      var by = ((1 - b.y) * rect.height) / 2;
+
+      var dx = bx - ax;
+      var dy = by - ay;
+      var lengthSquared = dx * dx + dy * dy;
+
+      if (lengthSquared === 0) return;
+
+      var t = Math.max(
+        0,
+        Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lengthSquared),
+      );
+
+      var nearestX = ax + t * dx;
+      var nearestY = ay + t * dy;
+
+      var distance = Math.hypot(px - nearestX, py - nearestY);
+
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closest = connection;
+      }
+    });
+
+    return closest;
+  }
+  function animateSpeculativeConnections(now) {
+    speculativeConnections.forEach(function (connection) {
+      if (connection.complete) return;
+
+      var progress = Math.min(
+        1,
+        (now - connection.startTime) / SPECULATIVE_LINE_DURATION,
+      );
+
+      var eased = easeOutCubic(progress);
+
+      var currentEnd = connection.start.clone().lerp(connection.end, eased);
+
+      var positions = connection.line.geometry.attributes.position;
+
+      positions.setXYZ(
+        0,
+        connection.start.x,
+        connection.start.y,
+        connection.start.z,
+      );
+
+      positions.setXYZ(1, currentEnd.x, currentEnd.y, currentEnd.z);
+
+      positions.needsUpdate = true;
+
+      // Required for dashed lines to display correctly.
+      connection.line.computeLineDistances();
+
+      if (progress >= 1) {
+        connection.complete = true;
+      }
+
+      needsRender = true;
+    });
+  }
+
+  // ========================================
+  // CREATION MODE: STAR RETURN ANIMATION
+  // ========================================
+
+  function returnStarToPosition(node, originalPosition) {
+    // Replace any existing return animation for this star.
+    starReturnAnimations = starReturnAnimations.filter(function (animation) {
+      return animation.node.id !== node.id;
+    });
+
+    starReturnAnimations.push({
+      node: node,
+      from: layout[node.id].clone(),
+      to: originalPosition.clone(),
+      startTime: performance.now(),
+    });
+
+    needsRender = true;
+  }
+
+  function animateStarReturns(now) {
+    for (var i = starReturnAnimations.length - 1; i >= 0; i--) {
+      var animation = starReturnAnimations[i];
+
+      var progress = Math.min(
+        1,
+        (now - animation.startTime) / STAR_RETURN_DURATION,
+      );
+
+      var eased = easeOutCubic(progress);
+
+      var position = animation.from.clone().lerp(animation.to, eased);
+
+      moveStarTo(animation.node, position);
+
+      if (progress >= 1) {
+        starReturnAnimations.splice(i, 1);
+      }
+    }
+  }
+
   function attachPointerHandlers(el) {
+    // Tracks what the current mouse drag is doing.
+    var dragInteraction = "rotate";
+    var draggedStar = null;
+    var originalStarPosition = null;
+    // 3D dragging helpers
+    var dragRaycaster = new THREE_.Raycaster();
+    var dragPlane = new THREE_.Plane();
+    var dragIntersection = new THREE_.Vector3();
+    var dragOffset = new THREE_.Vector3();
+    var dragWorldPosition = new THREE_.Vector3();
+    var dragLocalPosition = new THREE_.Vector3();
+    var dragCameraDirection = new THREE_.Vector3();
+
+    function updateDragRay(e) {
+      var rect = el.getBoundingClientRect();
+
+      var mouse = new THREE_.Vector2(
+        ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        -((e.clientY - rect.top) / rect.height) * 2 + 1,
+      );
+
+      camera.updateMatrixWorld();
+      dragRaycaster.setFromCamera(mouse, camera);
+    }
     // grabbing the tooltip once so we're not doing getElementById every mousemove, ya feel
     var tooltipEl = document.getElementById("node-tooltip");
     function hideTooltip() {
@@ -2560,13 +3638,69 @@
     }
 
     el.addEventListener("pointerdown", function (e) {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+
       pointer.active = true;
       pointer.moved = false;
       pointer.downX = pointer.x = e.clientX;
       pointer.downY = pointer.y = e.clientY;
+
+      dragInteraction = "rotate";
+      draggedStar = null;
+
+      if (networkMode === "creation") {
+        var rect = el.getBoundingClientRect();
+
+        var hit = pickNodeAt(e.clientX - rect.left, e.clientY - rect.top);
+
+        if (hit) {
+          dragInteraction = "star";
+          draggedStar = hit;
+          // Cancel any unfinished return animation for this star.
+          starReturnAnimations = starReturnAnimations.filter(
+            function (animation) {
+              return animation.node.id !== hit.id;
+            },
+          );
+
+          // Remember where the star was before dragging.
+          originalStarPosition = layout[hit.id].clone();
+
+          // Find the star's current position in world space.
+          constellation.updateMatrixWorld(true);
+
+          dragWorldPosition
+            .copy(layout[hit.id])
+            .applyMatrix4(constellation.matrixWorld);
+
+          // Create a plane through the star, facing the camera.
+          camera.getWorldDirection(dragCameraDirection);
+
+          dragPlane.setFromNormalAndCoplanarPoint(
+            dragCameraDirection,
+            dragWorldPosition,
+          );
+
+          // Calculate the offset so the star doesn't jump
+          // when you begin dragging.
+          updateDragRay(e);
+
+          if (dragRaycaster.ray.intersectPlane(dragPlane, dragIntersection)) {
+            dragOffset.copy(dragWorldPosition).sub(dragIntersection);
+          } else {
+            dragOffset.set(0, 0, 0);
+          }
+
+          console.log("STAR DETECTED:", hit.name);
+        } else {
+          console.log("EMPTY SPACE DETECTED");
+        }
+      }
+
       el.setPointerCapture(e.pointerId);
       el.classList.add("dragging");
-      hideTooltip(); // don't want the label just floating there while you drag
+
+      hideTooltip();
     });
 
     el.addEventListener("pointermove", function (e) {
@@ -2580,14 +3714,46 @@
         )
           pointer.moved = true;
         if (pointer.moved) {
-          // rotating works in focus mode too now — orbit around whatever node's selected
-          constellation.rotation.y += dx * 0.006;
-          constellation.rotation.x = Math.max(
-            -0.6,
-            Math.min(0.6, constellation.rotation.x + dy * 0.006),
-          );
-          if (state.focusMode) updateFocusPivot(); // re-center on the selected node as it spins
-          needsRender = true;
+          console.log("DRAG TYPE:", dragInteraction);
+          if (dragInteraction === "star" && draggedStar) {
+            // Convert cursor position into a 3D ray.
+            updateDragRay(e);
+
+            // Find where the ray intersects the star's drag plane.
+            if (dragRaycaster.ray.intersectPlane(dragPlane, dragIntersection)) {
+              // Apply the initial offset.
+              dragWorldPosition.copy(dragIntersection).add(dragOffset);
+
+              // Convert world coordinates back into
+              // the constellation's local coordinates.
+              constellation.updateMatrixWorld(true);
+
+              dragLocalPosition.copy(
+                constellation.worldToLocal(dragWorldPosition.clone()),
+              );
+
+              // Move the actual star.
+              moveStarTo(draggedStar, dragLocalPosition);
+            }
+
+            el.style.cursor = "grabbing";
+          } else {
+            // NORMAL ROTATION
+            // Also works when dragging empty space in Creation Mode.
+
+            constellation.rotation.y += dx * 0.006;
+
+            constellation.rotation.x = Math.max(
+              -0.6,
+              Math.min(0.6, constellation.rotation.x + dy * 0.006),
+            );
+
+            if (state.focusMode) {
+              updateFocusPivot();
+            }
+
+            needsRender = true;
+          }
         }
         pointer.x = e.clientX;
         pointer.y = e.clientY;
@@ -2597,6 +3763,15 @@
         var rect = el.getBoundingClientRect();
         var hit = pickNodeAt(e.clientX - rect.left, e.clientY - rect.top);
         var newId = hit ? hit.id : null;
+
+        // Detect nearby ghost connections, unless hovering over a star.
+        var ghostHit = null;
+
+        if (!hit && networkMode === "creation") {
+          ghostHit = pickGhostConnection(e.clientX, e.clientY);
+        }
+
+        updateGhostConnectionHover(ghostHit);
         if (newId !== state.hoveredId) {
           state.hoveredId = newId;
           if (!state.focusMode) {
@@ -2604,7 +3779,8 @@
             updateLegendHoverChip();
             updateLegendChipHighlight();
           } else updateConnLabels(); // in focus mode the pill only shows for whatever's hovered right now
-          el.style.cursor = newId ? "pointer" : "grab";
+          el.style.cursor =
+            newId || hoveredGhostConnection ? "pointer" : "grab";
           if (newId) playHoverSound(); // little blip every time you land on a new node
         }
         // plain cursor tooltip is for the normal overview — in focus mode we've got the pill labels instead
@@ -2618,6 +3794,8 @@
 
     // gotta hide the tooltip when cursor leaves canvas or it just gets stuck there forever
     el.addEventListener("pointerleave", function () {
+      updateGhostConnectionHover(null);
+      el.style.cursor = "grab";
       state.hoveredId = null;
       hideTooltip();
       if (!state.focusMode) {
@@ -2630,11 +3808,63 @@
     function endDrag(e) {
       pointer.active = false;
       el.classList.remove("dragging");
-      if (!pointer.moved) {
+
+      if (dragInteraction === "star" && draggedStar && pointer.moved) {
+        if (e.type !== "pointercancel") {
+          var overlappingStar = findOverlappingStar(draggedStar);
+
+          if (overlappingStar) {
+            console.log(
+              "OVERLAP:",
+              draggedStar.name,
+              "↔",
+              overlappingStar.name,
+            );
+
+            createSpeculativeConnection(
+              draggedStar,
+              overlappingStar,
+              originalStarPosition,
+            );
+          }
+        }
+
+        // Return the star whether or not an overlap was found.
+        returnStarToPosition(draggedStar, originalStarPosition);
+      } else if (!pointer.moved && e.type !== "pointercancel") {
         var rect = el.getBoundingClientRect();
+
         var hit = pickNodeAt(e.clientX - rect.left, e.clientY - rect.top);
-        selectNode(hit ? hit.id : null);
+
+        var ghostHit = hit ? null : pickGhostConnection(e.clientX, e.clientY);
+
+        if (ghostHit) {
+          // Open the ghost connection description.
+          openGhostDescription(ghostHit);
+        } else {
+          var ghostPanel = document.getElementById("ghost-description-panel");
+          var ghostWasOpen = ghostPanel.classList.contains("open");
+
+          // Close the ghost description.
+          closeGhostDescription();
+
+          if (ghostWasOpen && state.focusMode && !hit) {
+            // Stay in Focused View and return to the selected star's profile.
+            if (state.selectedId) {
+              showProfile(state.selectedId);
+            }
+          } else {
+            // Keep existing behaviour for all other clicks.
+            selectNode(hit ? hit.id : null);
+          }
+        }
       }
+
+      dragInteraction = "rotate";
+      draggedStar = null;
+      originalStarPosition = null;
+
+      el.style.cursor = "grab";
     }
     el.addEventListener("pointerup", endDrag);
     el.addEventListener("pointercancel", endDrag);
@@ -2699,7 +3929,17 @@
   /* ---------------- render loop (dirty-flag gated) ---------------- */
   function tick() {
     raf = requestAnimationFrame(tick);
-    if (ambientEnabled && !state.focusMode && !state.hoveredId) {
+    var animationTime = performance.now();
+
+    animateStarReturns(animationTime);
+    animateSpeculativeConnections(animationTime);
+    animateGhostConnectionHover();
+    if (
+      ambientEnabled &&
+      !state.focusMode &&
+      !state.hoveredId &&
+      !pointer.active
+    ) {
       constellation.rotation.y += 0.0003; // calvin slowed this way down + made it pause on hover, way easier to read names now
       needsRender = true;
     }
@@ -2749,7 +3989,15 @@
 
     // pills need to re-track their dot every frame the camera's still easing into focus
     if (state.focusMode && animating) updateConnLabels();
-
+    // Keep the render loop active while either animation is running.
+    if (
+      starReturnAnimations.length > 0 ||
+      speculativeConnections.some(function (connection) {
+        return !connection.complete;
+      })
+    ) {
+      needsRender = true;
+    }
     if (needsRender) {
       renderer.render(scene, camera);
       needsRender = (ambientEnabled && !state.focusMode) || animating;
@@ -2921,7 +4169,7 @@
     var isOpen = legendEl.classList.contains("open");
     var hoveredNode = state.hoveredId ? nodeById[state.hoveredId] : null;
 
-    if (isOpen || !hoveredNode) {
+    if (state.focusMode || isOpen || !hoveredNode) {
       hoverChipEl.classList.remove("visible");
       return;
     }
@@ -2961,6 +4209,8 @@
       playCloseSound(); // softer tone backing out to the full map
     }
     refreshPointAttributes();
+    updateLegendHoverChip();
+    updateLegendChipHighlight();
   }
 
   function showProfile(id) {
@@ -2989,7 +4239,7 @@
       linkEl.style.display = "none";
     }
 
-    var connIds = Array.from(node.linked);
+    var connIds = Array.from(getAllConnectedNodeIds(id));
     $("conn-count").textContent = connIds.length;
     var list = $("conn-list");
     list.innerHTML = "";
@@ -3045,6 +4295,8 @@
       playClickSound();
     });
   searchInput.addEventListener("focus", function () {
+    closeGhostDescription();
+
     searchWrap.classList.add("open");
   });
   searchInput.addEventListener("blur", function () {
@@ -3075,6 +4327,8 @@
   var settingsBtn = $("settings-btn");
   var settingsPanel = $("settings-panel");
   settingsBtn.addEventListener("click", function () {
+    closeGhostDescription();
+
     var open = settingsPanel.classList.toggle("open");
     settingsBtn.setAttribute("aria-expanded", String(open));
     settingsPanel.setAttribute("aria-hidden", String(!open));
@@ -3181,8 +4435,12 @@
   var listBtn = $("list-toggle-btn");
   var listView = $("list-view");
   listBtn.addEventListener("click", function () {
+    closeGhostDescription();
+
     playClickSound();
     toggleListView();
+
+    updateResetConnectionsVisibility();
   });
 
   function toggleListView(force) {
@@ -3190,10 +4448,15 @@
       typeof force === "boolean"
         ? force
         : !listView.classList.contains("active");
+
     listView.classList.toggle("active", show);
     listBtn.setAttribute("aria-pressed", String(show));
     document.body.classList.toggle("list-active", show);
+
     if (show) buildListView();
+
+    // Update Reset Connections after switching views.
+    updateResetConnectionsVisibility();
   }
 
   function buildListView() {

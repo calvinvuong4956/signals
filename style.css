@@ -301,16 +301,21 @@ input:focus-visible,
 .legend-panel {
   overflow: hidden;
   max-width: 0;
-  max-height: 100%;
+  max-height: calc(100vh - 170px);
+  min-height: 0;
   opacity: 0;
   transform: translateX(-8px);
+
+  display: flex;
+  flex-direction: column;
+
   transition:
     max-width 0.28s ease,
     opacity 0.2s ease,
     transform 0.28s ease;
 }
 .legend.open .legend-panel {
-  max-width: 230px;
+  max-width: 260px;
   opacity: 1;
   transform: translateX(0);
   margin-left: 8px;
@@ -343,14 +348,21 @@ input:focus-visible,
   display: flex;
   flex-direction: column;
   gap: 6px;
-  width: 200px;
-  max-height: 100%;
+  width: 220px;
+
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: calc(100vh - 170px);
+
   overflow-y: auto;
   overflow-x: hidden;
+
   padding-right: 4px;
+  padding-bottom: 8px;
+
   user-select: none;
 }
-.legend-chips::-webkit-scrollbar {
+/* .legend-chips::-webkit-scrollbar {
   width: 4px;
 }
 .legend-chips::-webkit-scrollbar-track {
@@ -363,7 +375,7 @@ input:focus-visible,
 }
 .legend-chips::-webkit-scrollbar-thumb:hover {
   border-color: var(--line-strong);
-}
+} */
 
 .chip {
   display: flex;
@@ -1121,41 +1133,38 @@ body.list-active .hint {
   z-index: 1;
 }
 .join-btn-label {
+  /* drops in underneath the icon instead of stretching sideways, so the
+     search / list / settings buttons stay visible and nothing gets clipped */
   position: absolute;
-  left: 38px;
-  top: 0;
-  height: 38px;
+  top: calc(100% + 8px);
+  right: 0;
   display: flex;
   align-items: center;
-  max-width: 0;
-  overflow: hidden;
-  opacity: 0;
-  padding-left: 0;
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 15px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--accent);
   white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-4px);
   transition:
-    max-width 0.22s ease,
     opacity 0.18s ease,
-    padding-left 0.22s ease;
+    transform 0.22s ease;
 }
-/* :focus-within deliberately left out — it fires the instant a button is
-   pressed (native mousedown-focus behavior), which would re-trigger this
-   same expansion mid-click. :hover (already-settled well before a click)
-   and :focus-visible (keyboard tabbing, not mouse-triggered) don't have
-   that problem. */
 .join-btn:hover,
 .join-btn:focus-visible {
   z-index: 25;
 }
 .join-btn:hover .join-btn-bg,
 .join-btn:focus-visible .join-btn-bg {
-  width: 182px;
   border-color: var(--accent);
 }
 .join-btn:hover .join-btn-label,
 .join-btn:focus-visible .join-btn-label {
-  max-width: 220px;
   opacity: 1;
-  padding-left: 7px;
+  transform: translateY(0);
 }
 .join-btn:active {
   transform: scale(0.96);
@@ -1364,30 +1373,26 @@ form.join-step .join-title {
 }
 /* ---------- custom vertical scrollbars ---------- */
 
-/* Profile, sector filters, and node list */
-.profile,
+/* Sectors panel and Star-Node List */
 .legend-chips,
 #list-view {
-  scrollbar-width: thin;
-  scrollbar-color: var(--line-strong) transparent;
+  scrollbar-width: auto;
+  scrollbar-color: auto;
 }
 
 /* Scrollbar width */
-.profile::-webkit-scrollbar,
 .legend-chips::-webkit-scrollbar,
 #list-view::-webkit-scrollbar {
   width: 6px;
 }
 
-/* Transparent track */
-.profile::-webkit-scrollbar-track,
+/* Transparent scrollbar track */
 .legend-chips::-webkit-scrollbar-track,
 #list-view::-webkit-scrollbar-track {
   background: transparent;
 }
 
-/* Remove up/down arrow buttons */
-.profile::-webkit-scrollbar-button,
+/* Remove the up/down arrow buttons */
 .legend-chips::-webkit-scrollbar-button,
 #list-view::-webkit-scrollbar-button {
   display: none;
@@ -1396,16 +1401,535 @@ form.join-step .join-title {
 }
 
 /* Scrollbar thumb */
-.profile::-webkit-scrollbar-thumb,
 .legend-chips::-webkit-scrollbar-thumb,
 #list-view::-webkit-scrollbar-thumb {
+  background: rgba(100, 110, 130, 0.22);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+/* Slightly brighter on hover */
+.legend-chips::-webkit-scrollbar-thumb:hover,
+#list-view::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 110, 130, 0.1);
+  border-color: var(--line-strong);
+}
+
+/* Keep the Profile scrollbar's original styling */
+.profile {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+.profile::-webkit-scrollbar {
+  width: 6px;
+}
+
+.profile::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.profile::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.profile::-webkit-scrollbar-thumb {
   background: var(--text-dim);
   border-radius: 8px;
 }
 
-/* Hover effect */
-.profile::-webkit-scrollbar-thumb:hover,
-.legend-chips::-webkit-scrollbar-thumb:hover,
-#list-view::-webkit-scrollbar-thumb:hover {
+.profile::-webkit-scrollbar-thumb:hover {
   background: var(--text);
+}
+
+/* ========================================
+   NETWORK CREATION MODE
+======================================== */
+
+/* Bottom-left mode button */
+
+#network-mode-controls {
+  position: fixed;
+  bottom: 28px;
+  left: 28px;
+  z-index: 30;
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#network-mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 12px 18px;
+
+  background: var(--bg);
+  color: var(--text);
+
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+
+  font-family: "Jura", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+
+  cursor: pointer;
+  transition:
+    background 0.25s,
+    border-color 0.25s,
+    opacity 0.25s;
+}
+
+#network-mode-btn:hover {
+  border-color: var(--text);
+}
+
+/* Star mode indicator */
+
+.mode-indicator {
+  width: 13px;
+  height: 13px;
+  background: var(--text-dim);
+  clip-path: polygon(
+    50% 0%,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
+  flex-shrink: 0;
+}
+
+/* Active creation mode */
+
+/* body.creation-mode #network-mode-btn {
+  border-color: var(--text);
+} */
+
+body.creation-mode .mode-indicator {
+  background: #39ffb6;
+  filter: drop-shadow(0 0 6px rgba(57, 255, 182, 0.95));
+}
+/* Introductory modal overlay */
+
+#network-mode-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: 20px;
+
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
+}
+
+#network-mode-overlay.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Modal content */
+
+.network-mode-modal {
+  width: 100%;
+  max-width: 480px;
+
+  padding: 36px;
+
+  background: var(--bg);
+  color: var(--text);
+
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+}
+
+.network-mode-eyebrow {
+  display: block;
+  margin-bottom: 18px;
+
+  font-family: "Jura", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--text-dim);
+}
+
+.network-mode-modal h2 {
+  margin: 0 0 20px;
+  font-family: "Jura", sans-serif;
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.network-mode-modal p {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text);
+}
+
+.network-mode-disclaimer {
+  opacity: 0.6;
+  font-size: 11px !important;
+}
+/* ---------- Ghost connection tutorial animation ---------- */
+
+.ghost-demo {
+  margin: 18px 0 22px;
+  padding: 14px 12px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  overflow: hidden;
+}
+
+.ghost-demo-scene {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.ghost-demo-caption {
+  text-align: center;
+  font-family: "Jura", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* Original star position */
+.ghost-demo-origin {
+  fill: none;
+  stroke: var(--cat-innovation);
+  stroke-width: 1;
+  opacity: 0;
+  animation: ghostDemoOrigin 5.5s ease-in-out infinite;
+}
+
+/* Right-hand target */
+.ghost-demo-target {
+  fill: var(--cat-education);
+  filter: drop-shadow(0 0 5px var(--cat-education));
+}
+
+/* Moving star */
+.ghost-demo-star {
+  fill: var(--cat-innovation);
+  filter: drop-shadow(0 0 5px var(--cat-innovation));
+  animation: ghostDemoDrag 5.5s ease-in-out infinite;
+}
+
+/* Established dashed ghost line */
+.ghost-demo-line {
+  stroke: #67e8f9;
+  stroke-width: 2;
+  stroke-dasharray: 6 5;
+  stroke-linecap: round;
+  opacity: 0;
+  animation: ghostDemoLine 5.5s ease-in-out infinite;
+}
+
+/* Mouse cursor */
+.ghost-demo-cursor {
+  animation: ghostDemoCursor 5.5s ease-in-out infinite;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.4));
+}
+
+/* Drag from left to right, then return to original position */
+@keyframes ghostDemoDrag {
+  0%,
+  20% {
+    transform: translateX(0);
+  }
+
+  52%,
+  60% {
+    transform: translateX(230px);
+  }
+
+  68%,
+  100% {
+    transform: translateX(0);
+  }
+}
+
+/* Cursor approaches, drags, releases and disappears */
+@keyframes ghostDemoCursor {
+  0% {
+    transform: translate(20px, 100px);
+    opacity: 0;
+  }
+
+  12%,
+  20% {
+    transform: translate(70px, 70px);
+    opacity: 1;
+  }
+
+  52%,
+  60% {
+    transform: translate(300px, 70px);
+    opacity: 1;
+  }
+
+  68% {
+    transform: translate(300px, 70px);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translate(20px, 100px);
+    opacity: 0;
+  }
+}
+
+/* Reveal original position while dragging */
+@keyframes ghostDemoOrigin {
+  0%,
+  20% {
+    opacity: 0;
+  }
+
+  30%,
+  60% {
+    opacity: 0.35;
+  }
+
+  68%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Connection appears only after the cursor releases */
+@keyframes ghostDemoLine {
+  0%,
+  65% {
+    opacity: 0;
+  }
+
+  70%,
+  94% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .ghost-demo-star,
+  .ghost-demo-cursor,
+  .ghost-demo-origin,
+  .ghost-demo-line {
+    animation: none;
+  }
+
+  .ghost-demo-cursor {
+    opacity: 0;
+  }
+
+  .ghost-demo-line {
+    opacity: 1;
+  }
+}
+
+/* Modal buttons */
+
+.network-mode-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.network-mode-actions button {
+  padding: 11px 18px;
+
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+
+  background: transparent;
+  color: var(--text);
+
+  font-family: "Jura", sans-serif;
+  font-size: 12px;
+
+  cursor: pointer;
+}
+
+#network-mode-start {
+  background: var(--text);
+  color: var(--bg);
+}
+
+.network-mode-actions button:hover {
+  opacity: 0.75;
+}
+
+/* Keep the mode button out of the introduction and list view */
+
+body.list-active #network-mode-controls,
+body.focus-active #network-mode-controls {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  #network-mode-controls {
+    bottom: 16px;
+    left: 16px;
+  }
+
+  .network-mode-modal {
+    padding: 24px;
+  }
+}
+
+/* ---------- Ghost Connection Descriptions ---------- */
+
+#ghost-description-panel {
+  position: absolute;
+  top: 70px;
+  right: 20px;
+  width: 320px;
+  max-width: calc(100vw - 40px);
+  padding: 22px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  z-index: 40;
+
+  opacity: 0;
+  transform: translateX(12px);
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+#ghost-description-panel.open {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+#ghost-description-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.ghost-description-eyebrow {
+  font-family: "Arimo", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: #67e8f9;
+  margin-bottom: 14px;
+}
+
+#ghost-description-title {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+  margin: 0 0 8px;
+}
+
+/* Sector indicators beneath the ghost connection title */
+.ghost-description-sectors {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.ghost-sector {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.ghost-sector-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ghost-sector-separator {
+  color: #67e8f9;
+  font-size: 13px;
+}
+
+#ghost-description-text {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.ghost-description-disclaimer {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-dim);
+}
+
+/* ---------- Alien Signal logo (from Calvin's update) ---------- */
+.brand-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  flex-shrink: 0;
+  transform: translateY(5px);
+}
+/* the logo is white, so it needs flipping to stay visible on the light theme */
+[data-theme="light"] .brand-logo {
+  filter: brightness(0) opacity(0.82);
+}
+
+/* the Account row is a flex .row, which was overriding the [hidden] attribute and
+   showing "Signed in / Log out" to people who haven't joined */
+.row[hidden],
+.settings-section-heading[hidden] {
+  display: none !important;
 }
