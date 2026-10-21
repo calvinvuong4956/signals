@@ -3146,6 +3146,18 @@
   }
 
   function createSpeculativeConnection(fromNode, toNode, fromPosition) {
+    // Prevent ghost connections between stars that
+    // already have an established connection.
+    if (fromNode.linked.has(toNode.id)) {
+      console.log(
+        "Ghost connection blocked: established connection already exists.",
+        fromNode.name,
+        "↔",
+        toNode.name,
+      );
+
+      return;
+    }
     // Prevent duplicate connections in either direction.
     var exists = speculativeConnections.some(function (connection) {
       return (
