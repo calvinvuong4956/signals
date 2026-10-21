@@ -1278,6 +1278,171 @@ body.creation-mode .mode-indicator {
   opacity: 0.6;
   font-size: 11px !important;
 }
+/* ---------- Ghost connection tutorial animation ---------- */
+
+.ghost-demo {
+  margin: 18px 0 22px;
+  padding: 14px 12px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  overflow: hidden;
+}
+
+.ghost-demo-scene {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.ghost-demo-caption {
+  text-align: center;
+  font-family: "Jura", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* Original star position */
+.ghost-demo-origin {
+  fill: none;
+  stroke: var(--cat-innovation);
+  stroke-width: 1;
+  opacity: 0;
+  animation: ghostDemoOrigin 5.5s ease-in-out infinite;
+}
+
+/* Right-hand target */
+.ghost-demo-target {
+  fill: var(--cat-education);
+  filter: drop-shadow(0 0 5px var(--cat-education));
+}
+
+/* Moving star */
+.ghost-demo-star {
+  fill: var(--cat-innovation);
+  filter: drop-shadow(0 0 5px var(--cat-innovation));
+  animation: ghostDemoDrag 5.5s ease-in-out infinite;
+}
+
+/* Established dashed ghost line */
+.ghost-demo-line {
+  stroke: #67e8f9;
+  stroke-width: 2;
+  stroke-dasharray: 6 5;
+  stroke-linecap: round;
+  opacity: 0;
+  animation: ghostDemoLine 5.5s ease-in-out infinite;
+}
+
+/* Mouse cursor */
+.ghost-demo-cursor {
+  animation: ghostDemoCursor 5.5s ease-in-out infinite;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.4));
+}
+
+/* Drag from left to right, then return to original position */
+@keyframes ghostDemoDrag {
+  0%,
+  20% {
+    transform: translateX(0);
+  }
+
+  52%,
+  60% {
+    transform: translateX(230px);
+  }
+
+  68%,
+  100% {
+    transform: translateX(0);
+  }
+}
+
+/* Cursor approaches, drags, releases and disappears */
+@keyframes ghostDemoCursor {
+  0% {
+    transform: translate(20px, 100px);
+    opacity: 0;
+  }
+
+  12%,
+  20% {
+    transform: translate(70px, 70px);
+    opacity: 1;
+  }
+
+  52%,
+  60% {
+    transform: translate(300px, 70px);
+    opacity: 1;
+  }
+
+  68% {
+    transform: translate(300px, 70px);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translate(20px, 100px);
+    opacity: 0;
+  }
+}
+
+/* Reveal original position while dragging */
+@keyframes ghostDemoOrigin {
+  0%,
+  20% {
+    opacity: 0;
+  }
+
+  30%,
+  60% {
+    opacity: 0.35;
+  }
+
+  68%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Connection appears only after the cursor releases */
+@keyframes ghostDemoLine {
+  0%,
+  65% {
+    opacity: 0;
+  }
+
+  70%,
+  94% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .ghost-demo-star,
+  .ghost-demo-cursor,
+  .ghost-demo-origin,
+  .ghost-demo-line {
+    animation: none;
+  }
+
+  .ghost-demo-cursor {
+    opacity: 0;
+  }
+
+  .ghost-demo-line {
+    opacity: 1;
+  }
+}
 
 /* Modal buttons */
 

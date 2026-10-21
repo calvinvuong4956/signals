@@ -44,6 +44,23 @@
   function openNetworkModeIntro() {
     modeOverlay.classList.add("open");
     modeOverlay.setAttribute("aria-hidden", "false");
+
+    // Restart the tutorial animation from the beginning
+    var ghostDemo = document.querySelector(".ghost-demo");
+
+    if (ghostDemo) {
+      var animatedElements = ghostDemo.querySelectorAll(
+        ".ghost-demo-star, .ghost-demo-cursor, .ghost-demo-origin, .ghost-demo-line",
+      );
+
+      animatedElements.forEach(function (element) {
+        element.getAnimations().forEach(function (animation) {
+          animation.cancel();
+          animation.play();
+        });
+      });
+    }
+
     modeStart.focus();
   }
 
