@@ -2707,50 +2707,285 @@
   var starReturnAnimations = [];
 
   function generateConnectionDescription(nodeA, nodeB) {
-    var pair = [nodeA.category, nodeB.category].sort().join("|");
+    // Each theme has a concrete project idea, not just a topic.
+    var themes = [
+      {
+        id: "housing",
+        words: ["housing", "homeless", "renter", "rent", "property"],
+        subject: "housing access and affordability",
+        projects: [
+          "a community housing needs assessment",
+          "a practical housing affordability toolkit",
+          "a pilot programme supporting people experiencing housing insecurity",
+        ],
+      },
+      {
+        id: "education",
+        words: ["education", "school", "learning", "training", "student"],
+        subject: "education and skills development",
+        projects: [
+          "a series of community learning workshops",
+          "an accessible professional development programme",
+          "a shared educational resource for local communities",
+        ],
+      },
+      {
+        id: "culture",
+        words: ["art", "cultur", "creative", "museum", "theatre", "dance"],
+        subject: "arts and cultural participation",
+        projects: [
+          "a participatory arts programme",
+          "a community exhibition and public conversation series",
+          "a creative engagement project highlighting local experiences",
+        ],
+      },
+      {
+        id: "media",
+        words: ["media", "journalis", "news", "broadcast", "publishing"],
+        subject: "public-interest communication",
+        projects: [
+          "a public-interest storytelling series",
+          "a community information campaign",
+          "a collaborative reporting and public education project",
+        ],
+      },
+      {
+        id: "policy",
+        words: ["policy", "government", "regulat", "legislat", "governance"],
+        subject: "public policy and governance",
+        projects: [
+          "a joint policy discussion paper",
+          "a series of public policy roundtables",
+          "a practical set of recommendations for decision-makers",
+        ],
+      },
+      {
+        id: "technology",
+        words: ["technolog", "digital", "innovation", "software", "design lab"],
+        subject: "digital innovation",
+        projects: [
+          "a prototype digital community resource",
+          "a user-centred service design pilot",
+          "an accessible digital participation tool",
+        ],
+      },
+      {
+        id: "first-nations",
+        words: [
+          "first nations",
+          "aboriginal",
+          "torres strait",
+          "traditional owner",
+          "truth-telling",
+          "treaty",
+          "indigenous",
+        ],
+        subject: "First Nations priorities and self-determination",
+        projects: [
+          "a First Nations-led consultation and knowledge-sharing initiative",
+          "a community-directed public education programme",
+          "a collaborative project guided by First Nations cultural authority",
+        ],
+      },
+      {
+        id: "community",
+        words: ["community", "welfare", "social", "wellbeing", "inclusion"],
+        subject: "community wellbeing",
+        projects: [
+          "a local community needs assessment",
+          "an inclusive community participation programme",
+          "a shared resource connecting people with support services",
+        ],
+      },
+    ];
 
-    var suggestions = {
-      "culture|education":
-        "These organisations could collaborate on arts-based educational programmes, combining creative practice with learning opportunities.",
+    function getText(node) {
+      var category = CATEGORIES.find(function (c) {
+        return c.id === node.category;
+      });
 
-      "education|innovation":
-        "These organisations could explore new learning technologies, research initiatives, or educational innovation projects.",
-
-      "housing|welfare":
-        "These organisations could connect housing services with community support programmes to address housing insecurity and wellbeing.",
-
-      "business|education":
-        "These organisations could develop industry partnerships, professional training, or employment pathways.",
-
-      "culture|media":
-        "These organisations could work together on storytelling, creative campaigns, and media projects that amplify community voices.",
-    };
-
-    if (suggestions[pair]) {
-      return suggestions[pair];
+      return [
+        node.name,
+        node.role,
+        node.description,
+        category ? category.label : "",
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
     }
 
-    var categoryA = CATEGORIES.find(function (c) {
-      return c.id === nodeA.category;
+    function getMatches(node) {
+      var text = getText(node);
+
+      return themes
+        .map(function (theme) {
+          var score = theme.words.reduce(function (total, word) {
+            return total + (text.includes(word) ? 1 : 0);
+          }, 0);
+
+          return { theme: theme, score: score };
+        })
+        .filter(function (result) {
+          return result.score > 0;
+        })
+        .sort(function (a, b) {
+          return b.score - a.score;
+        });
+    }
+
+    function getStrength(node) {
+      var text = getText(node);
+
+      if (/research|university|evidence|data|analysis/.test(text)) {
+        return {
+          expertise: "research and evidence-building",
+          contribution: "provide research and evidence to guide the project",
+        };
+      }
+
+      if (/advocacy|campaign|rights|union|represent/.test(text)) {
+        return {
+          expertise: "advocacy and representation",
+          contribution:
+            "connect the project with advocacy priorities and community perspectives",
+        };
+      }
+
+      if (/design|creative|studio|innovation/.test(text)) {
+        return {
+          expertise: "creative problem-solving and design",
+          contribution: "develop engaging, practical approaches to the project",
+        };
+      }
+
+      if (/government|policy|regulat|statutory/.test(text)) {
+        return {
+          expertise: "policy and institutional knowledge",
+          contribution:
+            "help translate the project's findings into policy discussions",
+        };
+      }
+
+      if (/media|journalis|news|broadcast|publication/.test(text)) {
+        return {
+          expertise: "communication and storytelling",
+          contribution: "communicate the project's findings to wider audiences",
+        };
+      }
+
+      if (/service|support|community|welfare/.test(text)) {
+        return {
+          expertise: "community engagement and service delivery",
+          contribution:
+            "help shape the project around practical community needs",
+        };
+      }
+
+      return {
+        expertise: "sector knowledge and professional networks",
+        contribution: "contribute specialist knowledge and relevant networks",
+      };
+    }
+
+    // Consistent variation: the same pair gets the same suggestion.
+    function pairNumber() {
+      var key = [nodeA.id, nodeB.id].sort().join("|");
+      var hash = 0;
+
+      for (var i = 0; i < key.length; i++) {
+        hash = (Math.imul(hash, 31) + key.charCodeAt(i)) | 0;
+      }
+
+      return hash >>> 0;
+    }
+
+    var seed = pairNumber();
+    var matchesA = getMatches(nodeA);
+    var matchesB = getMatches(nodeB);
+
+    var strengthA = getStrength(nodeA);
+    var strengthB = getStrength(nodeB);
+
+    var shared = matchesA.find(function (a) {
+      return matchesB.some(function (b) {
+        return a.theme.id === b.theme.id;
+      });
     });
 
-    var categoryB = CATEGORIES.find(function (c) {
-      return c.id === nodeB.category;
-    });
+    var themeA = matchesA.length ? matchesA[0].theme : null;
+    var themeB = matchesB.length ? matchesB[0].theme : null;
 
-    var labelA = categoryA ? categoryA.label : nodeA.category;
-    var labelB = categoryB ? categoryB.label : nodeB.category;
+    var mainTheme = shared ? shared.theme : themeA || themeB || themes[7];
+
+    var project = mainTheme.projects[seed % mainTheme.projects.length];
+
+    var introductions = [
+      "One possibility would be",
+      "A promising starting point could be",
+      "These organisations could explore",
+      "An opportunity worth investigating is",
+    ];
+
+    var introduction = introductions[seed % introductions.length];
+
+    var idea = introduction + " " + project + ".";
+
+    // Explain why THIS particular pairing could be useful.
+    var reasoning;
+
+    if (shared) {
+      reasoning =
+        "Both organisations have experience relevant to " +
+        mainTheme.subject +
+        ", but could approach the challenge through their respective strengths in " +
+        strengthA.expertise +
+        " and " +
+        strengthB.expertise +
+        ".";
+    } else if (themeA && themeB) {
+      reasoning =
+        "This could connect " +
+        themeA.subject +
+        " with " +
+        themeB.subject +
+        ", allowing the organisations to approach an issue from different perspectives.";
+    } else {
+      reasoning =
+        "The organisations could bring together their different areas of expertise to explore a shared community challenge.";
+    }
+
+    var contributions =
+      nodeA.name +
+      " could " +
+      strengthA.contribution +
+      ", while " +
+      nodeB.name +
+      " could " +
+      strengthB.contribution +
+      ".";
+
+    var ending = [
+      "The first step could be a small joint workshop to identify a realistic pilot.",
+      "A short exploratory project could help test whether the partnership would be useful.",
+      "The organisations could begin by identifying shared priorities and the communities they aim to serve.",
+      "A preliminary discussion could establish where their capabilities genuinely complement each other.",
+    ];
+
+    var caution =
+      mainTheme.id === "first-nations"
+        ? " Any project involving First Nations knowledge or communities would need to be First Nations-led, with appropriate consent and cultural authority."
+        : "";
 
     return (
-      nodeA.name +
-      " and " +
-      nodeB.name +
-      " could explore a potential collaboration connecting " +
-      labelA.toLowerCase() +
-      " and " +
-      labelB.toLowerCase() +
-      ". By sharing their respective expertise and resources, " +
-      "they could identify opportunities for joint projects."
+      idea +
+      " " +
+      reasoning +
+      " " +
+      contributions +
+      " " +
+      ending[(seed >>> 3) % ending.length] +
+      caution
     );
   }
 
