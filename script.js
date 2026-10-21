@@ -2710,6 +2710,27 @@
   // CREATION MODE: SPECULATIVE CONNECTIONS
   // ========================================
 
+  function createGhostGlowTexture() {
+    var canvas = document.createElement("canvas");
+    canvas.width = 128;
+    canvas.height = 128;
+
+    var ctx = canvas.getContext("2d");
+
+    var gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+
+    gradient.addColorStop(0, "rgba(103,232,249,0.7)");
+    gradient.addColorStop(0.2, "rgba(103,232,249,0.35)");
+    gradient.addColorStop(0.55, "rgba(103,232,249,0.08)");
+    gradient.addColorStop(1, "rgba(103,232,249,0)");
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 128, 128);
+
+    return new THREE_.CanvasTexture(canvas);
+  }
+
+  var ghostGlowTexture = createGhostGlowTexture();
   var speculativeConnections = [];
   var starReturnAnimations = [];
 
@@ -3012,6 +3033,20 @@
       connection.line.material.dispose();
     });
 
+    // Remove the glow line (it shares the original geometry).
+    if (connection.glowLine) {
+      constellation.remove(connection.glowLine);
+      connection.glowLine.material.dispose();
+    }
+
+    // Remove glow sprites.
+    if (connection.glowSprites) {
+      connection.glowSprites.forEach(function (sprite) {
+        constellation.remove(sprite);
+        sprite.material.dispose();
+      });
+    }
+
     // Empty the speculative connection array.
     speculativeConnections.length = 0;
 
@@ -3095,7 +3130,45 @@
 
     constellation.add(line);
 
+    // Soft cyan halo behind the dashed line.
+    var glowMaterial = new THREE_.LineBasicMaterial({
+      color: 0x67e8f9,
+      transparent: true,
+      opacity: 0,
+      blending: THREE_.AdditiveBlending,
+      depthWrite: false,
+    });
+
+    var glowLine = new THREE_.Line(geometry, glowMaterial);
+    glowLine.frustumCulled = false;
+    glowLine.renderOrder = -1;
+
+    constellation.add(glowLine);
+
+    var glowSprites = [];
+
+    for (var i = 0; i < 12; i++) {
+      var spriteMaterial = new THREE_.SpriteMaterial({
+        map: ghostGlowTexture,
+        color: 0x67e8f9,
+        transparent: true,
+        opacity: 0,
+        blending: THREE_.AdditiveBlending,
+        depthWrite: false,
+      });
+
+      var sprite = new THREE_.Sprite(spriteMaterial);
+      sprite.position.copy(start.clone().lerp(end, i / 11));
+      sprite.scale.set(8, 8, 1);
+      sprite.visible = false;
+
+      constellation.add(sprite);
+      glowSprites.push(sprite);
+    }
+
     speculativeConnections.push({
+      glowLine: glowLine,
+      glowSprites: glowSprites,
       fromId: fromNode.id,
       toId: toNode.id,
       line: line,
@@ -3192,6 +3265,17 @@
 
       // Increase opacity when hovered.
       material.opacity = 0.9 + next * 0.1;
+      // Fade the soft cyan halo in and out.
+      if (ghost.glowLine) {
+        ghost.glowLine.material.opacity = next * 0.2;
+      }
+
+      if (ghost.glowSprites) {
+        ghost.glowSprites.forEach(function (sprite) {
+          sprite.visible = next > 0.005;
+          sprite.material.opacity = next * 0.16;
+        });
+      }
     });
 
     if (animating) needsRender = true;
