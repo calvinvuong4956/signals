@@ -3073,37 +3073,50 @@
   // ========================================
 
   function resetSpeculativeConnections() {
+    // Clear the currently hovered ghost connection.
     hoveredGhostConnection = null;
+
+    // Close any open ghost description.
     closeGhostDescription();
+
     speculativeConnections.forEach(function (connection) {
-      // Remove the line from the 3D scene.
+      // Remove the original dashed line.
       constellation.remove(connection.line);
 
-      // Release Three.js resources.
+      // Remove the extra glow line.
+      if (connection.glowLine) {
+        constellation.remove(connection.glowLine);
+        connection.glowLine.material.dispose();
+      }
+
+      // Remove every halo sprite.
+      if (connection.glowSprites) {
+        connection.glowSprites.forEach(function (sprite) {
+          constellation.remove(sprite);
+          sprite.material.dispose();
+        });
+
+        connection.glowSprites.length = 0;
+      }
+
+      // Dispose of the original line's resources.
+      // Its geometry may also be shared by the glow line.
       connection.line.geometry.dispose();
       connection.line.material.dispose();
     });
 
-    // Remove the glow line (it shares the original geometry).
-    if (connection.glowLine) {
-      constellation.remove(connection.glowLine);
-      connection.glowLine.material.dispose();
-    }
-
-    // Remove glow sprites.
-    if (connection.glowSprites) {
-      connection.glowSprites.forEach(function (sprite) {
-        constellation.remove(sprite);
-        sprite.material.dispose();
-      });
-    }
-
-    // Empty the speculative connection array.
+    // Completely remove the connections from the data.
     speculativeConnections.length = 0;
+
+    // Refresh Focused View so ghost-connected stars
+    // no longer count as neighbours.
+    refreshPointAttributes();
+    updateHighlightLines();
+    updateConnLabels();
 
     needsRender = true;
 
-    console.log("All speculative connections have been reset.");
+    console.log("All speculative connections fully reset.");
   }
 
   // ========================================
@@ -3292,6 +3305,10 @@
   var GHOST_HOVER_COLOR = new THREE_.Color(0xffffff);
 
   function updateGhostConnectionHover(connection) {
+    // Ignore references to connections that have been reset.
+    if (connection && !speculativeConnections.includes(connection)) {
+      connection = null;
+    }
     if (hoveredGhostConnection === connection) return;
 
     hoveredGhostConnection = connection;
