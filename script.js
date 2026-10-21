@@ -3163,9 +3163,9 @@
   resetConnectionsButton.id = "reset-speculative-connections";
 
   Object.assign(resetConnectionsButton.style, {
-    position: "fixed",
-    bottom: "80px",
-    left: "20px",
+    position: "relative",
+    bottom: "auto",
+    left: "auto",
     zIndex: "9999",
     padding: "10px 16px",
     background: "#111827",
@@ -3181,7 +3181,9 @@
     resetSpeculativeConnections();
   });
 
-  document.body.appendChild(resetConnectionsButton);
+  document
+    .getElementById("network-mode-controls")
+    .appendChild(resetConnectionsButton);
   resetConnectionsButton.style.display = "none";
   updateResetConnectionsVisibility();
 
