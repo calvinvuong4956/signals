@@ -1201,7 +1201,7 @@ body.list-active .hint {
 } */
 
 body.creation-mode .mode-indicator {
-  background: #00ff99;
+  background: #39ffb6;
   filter: drop-shadow(0 0 6px rgba(57, 255, 182, 0.95));
 }
 /* Introductory modal overlay */
