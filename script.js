@@ -3808,10 +3808,24 @@
         var ghostHit = hit ? null : pickGhostConnection(e.clientX, e.clientY);
 
         if (ghostHit) {
+          // Open the ghost connection description.
           openGhostDescription(ghostHit);
         } else {
+          var ghostPanel = document.getElementById("ghost-description-panel");
+          var ghostWasOpen = ghostPanel.classList.contains("open");
+
+          // Close the ghost description.
           closeGhostDescription();
-          selectNode(hit ? hit.id : null);
+
+          if (ghostWasOpen && state.focusMode && !hit) {
+            // Stay in Focused View and return to the selected star's profile.
+            if (state.selectedId) {
+              showProfile(state.selectedId);
+            }
+          } else {
+            // Keep existing behaviour for all other clicks.
+            selectNode(hit ? hit.id : null);
+          }
         }
       }
 
