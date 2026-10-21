@@ -7,7 +7,7 @@
   // NETWORK MODES
   // ========================================
 
-  var networkMode = "creation";
+  var networkMode = "normal";
 
   var modeButton = document.getElementById("network-mode-btn");
   var modeLabel = document.getElementById("network-mode-label");
@@ -39,7 +39,7 @@
     console.log("Network mode:", networkMode);
   }
   // TEMPORARY: Start in Creation Mode for testing
-  setNetworkMode("creation");
+  setNetworkMode("normal");
 
   function openNetworkModeIntro() {
     modeOverlay.classList.add("open");
@@ -55,7 +55,7 @@
 
       animatedElements.forEach(function (element) {
         element.getAnimations().forEach(function (animation) {
-          animation.cancel();
+          animation.currentTime = 0;
           animation.play();
         });
       });
