@@ -2566,10 +2566,26 @@
     speculativeConnections.forEach(function (connection) {
       // Show a ghost connection when BOTH endpoints
       // belong to the currently visible network.
+      var fromNode = nodeById[connection.fromId];
+      var toNode = nodeById[connection.toId];
+
+      var searching = state.query.trim().length > 0;
+
+      var matchesSearch =
+        !searching ||
+        (matchesQuery(fromNode, state.query) &&
+          matchesQuery(toNode, state.query));
+
+      var matchesSectors =
+        state.activeCats[fromNode.category] &&
+        state.activeCats[toNode.category];
+
       var visible =
-        !state.focusMode ||
-        (visibleNodeIds.has(connection.fromId) &&
-          visibleNodeIds.has(connection.toId));
+        matchesSearch &&
+        matchesSectors &&
+        (!state.focusMode ||
+          (visibleNodeIds.has(connection.fromId) &&
+            visibleNodeIds.has(connection.toId)));
 
       connection.line.visible = visible;
 
@@ -3394,6 +3410,7 @@
     var closestDistance = 12;
 
     speculativeConnections.forEach(function (connection) {
+      if (!connection.line.visible) return;
       if (!connection.complete) return;
 
       var a = connection.start
