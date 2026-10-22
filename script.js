@@ -3183,7 +3183,49 @@
 
     console.log("All speculative connections fully reset.");
   }
+  // Remove one Ghost Connection without affecting the others.
+  function removeSpeculativeConnection(connection) {
+    var index = speculativeConnections.indexOf(connection);
 
+    if (index === -1) return;
+
+    updateGhostConnectionHover(null);
+    closeGhostDescription();
+
+    // Remove the connection line.
+    constellation.remove(connection.line);
+
+    // Remove its glow line.
+    if (connection.glowLine) {
+      constellation.remove(connection.glowLine);
+      connection.glowLine.material.dispose();
+    }
+
+    // Remove its glow sprites.
+    if (connection.glowSprites) {
+      connection.glowSprites.forEach(function (sprite) {
+        constellation.remove(sprite);
+        sprite.material.dispose();
+      });
+
+      connection.glowSprites.length = 0;
+    }
+
+    // Clean up the line's resources.
+    connection.line.geometry.dispose();
+    connection.line.material.dispose();
+
+    // Remove only this connection from the data.
+    speculativeConnections.splice(index, 1);
+
+    // Refresh the network.
+    updateResetConnectionsVisibility();
+    refreshPointAttributes();
+    updateHighlightLines();
+    updateConnLabels();
+
+    needsRender = true;
+  }
   // ========================================
   // TEMPORARY RESET BUTTON
   // ========================================
@@ -3636,7 +3678,16 @@
       tooltipEl.style.top = y + "px";
       tooltipEl.classList.add("visible");
     }
+    // Right-click a Ghost Connection to delete it.
+    el.addEventListener("contextmenu", function (e) {
+      var ghostHit = pickGhostConnection(e.clientX, e.clientY);
 
+      if (!ghostHit) return;
+
+      e.preventDefault();
+
+      removeSpeculativeConnection(ghostHit);
+    });
     el.addEventListener("pointerdown", function (e) {
       if (e.pointerType === "mouse" && e.button !== 0) return;
 
@@ -4070,7 +4121,41 @@
       chipsWrap.appendChild(chip);
       chipEls.push({ chip: chip, catId: cat.id });
     });
+    // Middle-click a sector to show only that sector.
+    chipsWrap.addEventListener("pointerdown", function (e) {
+      if (
+        e.pointerType === "mouse" &&
+        e.button === 1 &&
+        e.target.closest(".chip")
+      ) {
+        e.preventDefault();
+      }
+    });
 
+    chipsWrap.addEventListener("auxclick", function (e) {
+      if (e.button !== 1) return;
+
+      var chipEl = e.target.closest(".chip");
+      if (!chipEl) return;
+
+      e.preventDefault();
+
+      var selected = chipEls.find(function (entry) {
+        return entry.chip === chipEl;
+      });
+
+      if (!selected) return;
+
+      chipEls.forEach(function (entry) {
+        var active = entry.catId === selected.catId;
+
+        state.activeCats[entry.catId] = active;
+        entry.chip.setAttribute("aria-pressed", String(active));
+      });
+
+      playClickSound();
+      refreshPointAttributes();
+    });
     // --- drag-select: hold left click + drag across chips to mass toggle ---
     var dragState = null;
     var DRAG_THRESHOLD = 4;
@@ -4642,7 +4727,8 @@
     })[0];
     if (chipEntry) {
       var countEl = chipEntry.chip.querySelector(".chip-count");
-      if (countEl) countEl.textContent = String(Number(countEl.textContent) + 1);
+      if (countEl)
+        countEl.textContent = String(Number(countEl.textContent) + 1);
     }
     updateNodeCountLabel();
 
@@ -4733,7 +4819,6 @@
     };
   }
 
-
   /* =======================================================================
      SAVE LIST — only for people who've joined. a little alien sits bottom-right
      (bobbing + a soft ring so the eye finds him); hovering him shows the
@@ -4757,7 +4842,10 @@
     if (!k) return;
     try {
       var parsed = JSON.parse(localStorage.getItem(k) || "[]");
-      if (Array.isArray(parsed)) savedIds = parsed.filter(function (x) { return typeof x === "string"; });
+      if (Array.isArray(parsed))
+        savedIds = parsed.filter(function (x) {
+          return typeof x === "string";
+        });
     } catch (e) {}
   }
   function persistSaved() {
@@ -4767,21 +4855,30 @@
       localStorage.setItem(k, JSON.stringify(savedIds));
     } catch (e) {}
     var token = null;
-    try { token = localStorage.getItem(JOIN_TOKEN_KEY); } catch (e) {}
+    try {
+      token = localStorage.getItem(JOIN_TOKEN_KEY);
+    } catch (e) {}
     if (token) {
       fetch("/api/saved", {
         method: "PUT",
-        headers: { "content-type": "application/json", authorization: "Bearer " + token },
+        headers: {
+          "content-type": "application/json",
+          authorization: "Bearer " + token,
+        },
         body: JSON.stringify({ saved: savedIds }),
       }).catch(function () {});
     }
   }
   function syncSavedFromServer() {
     var token = null;
-    try { token = localStorage.getItem(JOIN_TOKEN_KEY); } catch (e) {}
+    try {
+      token = localStorage.getItem(JOIN_TOKEN_KEY);
+    } catch (e) {}
     if (!token) return;
     fetch("/api/saved", { headers: { authorization: "Bearer " + token } })
-      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (r) {
+        return r.ok ? r.json() : null;
+      })
       .then(function (body) {
         if (!body || !Array.isArray(body.saved) || !joinedNode) return;
         var merged = savedIds.slice();
@@ -4807,17 +4904,23 @@
     var empty = $("saved-empty");
     var count = $("saver-count");
     if (!list) return;
-    var items = savedIds.filter(function (id) { return !!nodeById[id]; });
+    var items = savedIds.filter(function (id) {
+      return !!nodeById[id];
+    });
     list.innerHTML = "";
     empty.hidden = items.length > 0;
     count.hidden = items.length === 0;
     count.textContent = String(items.length);
     $("saved-sub").textContent = items.length
-      ? items.length + (items.length === 1 ? " organisation" : " organisations") + " to look back on"
+      ? items.length +
+        (items.length === 1 ? " organisation" : " organisations") +
+        " to look back on"
       : "Organisations you want to look back on";
     items.forEach(function (id) {
       var node = nodeById[id];
-      var cat = CATEGORIES.filter(function (c) { return c.id === node.category; })[0];
+      var cat = CATEGORIES.filter(function (c) {
+        return c.id === node.category;
+      })[0];
       var li = document.createElement("li");
       li.className = "saved-row";
       var open = document.createElement("button");
@@ -4851,7 +4954,9 @@
       rm.innerHTML = "&times;";
       rm.addEventListener("click", function () {
         playClickSound();
-        savedIds = savedIds.filter(function (x) { return x !== id; });
+        savedIds = savedIds.filter(function (x) {
+          return x !== id;
+        });
         persistSaved();
         renderSaved();
         refreshSavePrompt();
@@ -4875,8 +4980,13 @@
     box.classList.toggle("is-saved", saved);
     var btn = $("profile-save-btn");
     btn.setAttribute("aria-pressed", String(saved));
-    btn.setAttribute("aria-label", saved ? "Remove from my save list" : "Save to my save list");
-    $("profile-save-title").textContent = saved ? "Saved to your list" : "Interested in this one?";
+    btn.setAttribute(
+      "aria-label",
+      saved ? "Remove from my save list" : "Save to my save list",
+    );
+    $("profile-save-title").textContent = saved
+      ? "Saved to your list"
+      : "Interested in this one?";
     $("profile-save-sub").textContent = saved
       ? "Find it any time with the alien, bottom right."
       : "Tap the circle to save it to your list.";
@@ -4892,7 +5002,9 @@
     alien.classList.remove("wiggle");
     void alien.offsetWidth;
     alien.classList.add("wiggle");
-    setTimeout(function () { alien.classList.remove("wiggle"); }, 900);
+    setTimeout(function () {
+      alien.classList.remove("wiggle");
+    }, 900);
     if (!saverToastShownThisSession) {
       saverToastShownThisSession = true;
       var t = $("saver-toast");
@@ -4978,7 +5090,9 @@
       if (!joinedNode || !id) return;
       playClickSound();
       if (isSaved(id)) {
-        savedIds = savedIds.filter(function (x) { return x !== id; });
+        savedIds = savedIds.filter(function (x) {
+          return x !== id;
+        });
       } else {
         savedIds.push(id);
         nudgeSaver();
@@ -5174,7 +5288,8 @@
       overlay.setAttribute("aria-hidden", "false");
       playClickSound();
       if (step === stepDone) startPreview($("join-done-canvas"));
-      else if (!step || step === stepIntro) startPreview($("join-astronaut-canvas"));
+      else if (!step || step === stepIntro)
+        startPreview($("join-astronaut-canvas"));
     }
 
     function closeOverlay() {
@@ -5198,7 +5313,8 @@
       if (e.target === overlay) closeOverlay();
     });
     document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && overlay.classList.contains("open")) closeOverlay();
+      if (e.key === "Escape" && overlay.classList.contains("open"))
+        closeOverlay();
     });
 
     // sign-up is two short steps: about the organisation, then the login details
@@ -5227,7 +5343,8 @@
       }
       var site = $("join-website");
       if (site.value && !site.checkValidity()) {
-        err.textContent = "That website doesn't look right. Start it with https://";
+        err.textContent =
+          "That website doesn't look right. Start it with https://";
         err.hidden = false;
         site.focus();
         return;
@@ -5281,8 +5398,12 @@
       }
       var errEl = $("join-form-error");
       errEl.hidden = true;
-      if (!$("join-email").checkValidity() || !$("join-password").checkValidity()) {
-        errEl.textContent = "Enter a valid email and a password of at least 6 characters.";
+      if (
+        !$("join-email").checkValidity() ||
+        !$("join-password").checkValidity()
+      ) {
+        errEl.textContent =
+          "Enter a valid email and a password of at least 6 characters.";
         errEl.hidden = false;
         return;
       }
@@ -5351,7 +5472,8 @@
           setJoined(body.token, body.node);
           stopPreviews();
           $("join-done-title").textContent = "Welcome back, " + body.node.name;
-          $("join-done-sub").textContent = "Here's your spot on the constellation.";
+          $("join-done-sub").textContent =
+            "Here's your spot on the constellation.";
           showStep(stepDone);
           startPreview($("join-done-canvas"));
         })
