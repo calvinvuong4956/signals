@@ -2441,6 +2441,30 @@
     // Draw orange lines ONLY for established connections.
     // Ghost connections keep their own cyan dashed lines.
     nodeById[focusId].linked.forEach(function (otherId) {
+      var otherNode = nodeById[otherId];
+
+      if (!otherNode) return;
+
+      // Hide highlighted connections to filtered-out sectors.
+      // Preserve all connections in Focused View.
+      if (!state.focusMode) {
+        if (
+          !state.activeCats[otherNode.category] ||
+          !state.activeCats[nodeById[focusId].category]
+        ) {
+          return;
+        }
+
+        // Also respect the search filter.
+        if (
+          state.query.trim() &&
+          (!matchesQuery(otherNode, state.query) ||
+            !matchesQuery(nodeById[focusId], state.query))
+        ) {
+          return;
+        }
+      }
+
       var p = layout[otherId];
 
       arr.push(focusPos.x, focusPos.y, focusPos.z, p.x, p.y, p.z);
