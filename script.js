@@ -2006,7 +2006,7 @@
     if (!Ctx) return; // ancient browser or no audio support, just skip sound entirely
     audioCtx = new Ctx();
     masterGain = audioCtx.createGain();
-    masterGain.gain.value = state.muted ? 0 : 7;
+    masterGain.gain.value = state.muted ? 0 : 2;
     masterGain.connect(audioCtx.destination);
   }
 
@@ -4501,7 +4501,7 @@
   wireSwitch($("sound-switch"), !state.muted, function (isOn) {
     state.muted = !isOn;
     localStorage.setItem(MUTE_KEY, state.muted ? "1" : "0");
-    if (masterGain) masterGain.gain.value = state.muted ? 0 : 7;
+    if (masterGain) masterGain.gain.value = state.muted ? 0 : 2;
   });
 
   function recolorForTheme() {
