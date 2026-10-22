@@ -3531,8 +3531,6 @@
   }
 
   function pickGhostConnection(clientX, clientY) {
-    if (networkMode !== "creation") return null;
-
     var rect = renderer.domElement.getBoundingClientRect();
     var px = clientX - rect.left;
     var py = clientY - rect.top;
@@ -3839,10 +3837,10 @@
         var hit = pickNodeAt(e.clientX - rect.left, e.clientY - rect.top);
         var newId = hit ? hit.id : null;
 
-        // Detect nearby ghost connections, unless hovering over a star.
+        // Detect nearby ghost connections in both modes.
         var ghostHit = null;
 
-        if (!hit && networkMode === "creation") {
+        if (!hit) {
           ghostHit = pickGhostConnection(e.clientX, e.clientY);
         }
 
