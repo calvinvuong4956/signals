@@ -4170,8 +4170,17 @@
 
       if (!selected) return;
 
+      // Check whether this sector is already the only active sector.
+      var alreadyIsolated = chipEls.every(function (entry) {
+        return (
+          state.activeCats[entry.catId] === (entry.catId === selected.catId)
+        );
+      });
+
       chipEls.forEach(function (entry) {
-        var active = entry.catId === selected.catId;
+        // If already isolated, restore all sectors.
+        // Otherwise, isolate the clicked sector.
+        var active = alreadyIsolated || entry.catId === selected.catId;
 
         state.activeCats[entry.catId] = active;
         entry.chip.setAttribute("aria-pressed", String(active));
