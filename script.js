@@ -4493,6 +4493,77 @@
     });
   }
 
+  // Draggable panels in Focused View
+  function makeFocusPanelDraggable(panelId) {
+    var panel = document.getElementById(panelId);
+    if (!panel) return;
+
+    var handle = document.createElement("div");
+    handle.className = "focus-panel-drag-handle";
+    handle.title = "Drag to reposition";
+    handle.setAttribute("aria-label", "Drag panel to reposition");
+    handle.innerHTML = '<span class="drag-grip-icon">⠿</span>';
+    panel.insertBefore(handle, panel.firstChild);
+
+    var dragging = false;
+    var offsetX = 0;
+    var offsetY = 0;
+
+    handle.addEventListener("pointerdown", function (e) {
+      if (!state.focusMode || e.button !== 0) return;
+
+      e.preventDefault();
+
+      var rect = panel.getBoundingClientRect();
+      offsetX = e.clientX - rect.left;
+      offsetY = e.clientY - rect.top;
+
+      panel.style.left = rect.left + "px";
+      panel.style.top = rect.top + "px";
+      panel.style.right = "auto";
+      panel.classList.add("focus-panel-moved");
+
+      dragging = true;
+      handle.setPointerCapture(e.pointerId);
+    });
+
+    handle.addEventListener("pointermove", function (e) {
+      if (!dragging) return;
+
+      var maxX = Math.max(0, window.innerWidth - panel.offsetWidth);
+      var maxY = Math.max(0, window.innerHeight - panel.offsetHeight);
+
+      var x = Math.max(0, Math.min(e.clientX - offsetX, maxX));
+      var y = Math.max(0, Math.min(e.clientY - offsetY, maxY));
+
+      panel.style.left = x + "px";
+      panel.style.top = y + "px";
+    });
+
+    function stopDragging() {
+      dragging = false;
+    }
+
+    handle.addEventListener("pointerup", stopDragging);
+    handle.addEventListener("pointercancel", stopDragging);
+    handle.addEventListener("lostpointercapture", stopDragging);
+  }
+
+  function resetFocusPanelPositions() {
+    ["profile", "ghost-description-panel"].forEach(function (id) {
+      var panel = document.getElementById(id);
+      if (!panel) return;
+
+      panel.classList.remove("focus-panel-moved");
+      panel.style.left = "";
+      panel.style.top = "";
+      panel.style.right = "";
+    });
+  }
+
+  makeFocusPanelDraggable("profile");
+  makeFocusPanelDraggable("ghost-description-panel");
+
   function selectNode(id) {
     // Clicking the currently focused star again returns to the 3D map.
     if (state.focusMode && id && id === state.selectedId) {
@@ -4501,6 +4572,9 @@
 
     state.selectedId = id;
     state.hoveredId = null;
+
+    // Reset draggable panels for each new focused view
+    resetFocusPanelPositions();
 
     if (id) {
       enterFocus(id);
