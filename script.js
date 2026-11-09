@@ -15,6 +15,38 @@
   var modeStart = document.getElementById("network-mode-start");
   var modeCancel = document.getElementById("network-mode-cancel");
 
+  var tutorialPage1 = document.getElementById("network-tutorial-page-1");
+  var tutorialPage2 = document.getElementById("network-tutorial-page-2");
+  var tutorialNext = document.getElementById("network-tutorial-next");
+  var tutorialBack = document.getElementById("network-tutorial-back");
+
+  function showTutorialPage(page) {
+    tutorialPage1.hidden = page !== 1;
+    tutorialPage2.hidden = page !== 2;
+
+    // Restart animations on whichever page is visible.
+    var activePage = page === 1 ? tutorialPage1 : tutorialPage2;
+
+    activePage.querySelectorAll("*").forEach(function (element) {
+      element.getAnimations().forEach(function (animation) {
+        animation.cancel();
+        animation.play();
+      });
+    });
+  }
+
+  tutorialNext.addEventListener("click", function () {
+    playClickSound();
+    showTutorialPage(2);
+    tutorialBack.focus();
+  });
+
+  tutorialBack.addEventListener("click", function () {
+    playClickSound();
+    showTutorialPage(1);
+    tutorialNext.focus();
+  });
+
   function setNetworkMode(mode) {
     networkMode = mode;
 
@@ -46,23 +78,10 @@
     modeOverlay.classList.add("open");
     modeOverlay.setAttribute("aria-hidden", "false");
 
-    // Restart the tutorial animation from the beginning
-    var ghostDemo = document.querySelector(".ghost-demo");
+    // Always start from Page 1.
+    showTutorialPage(1);
 
-    if (ghostDemo) {
-      var animatedElements = ghostDemo.querySelectorAll(
-        ".ghost-demo-star, .ghost-demo-cursor, .ghost-demo-origin, .ghost-demo-line",
-      );
-
-      animatedElements.forEach(function (element) {
-        element.getAnimations().forEach(function (animation) {
-          animation.currentTime = 0;
-          animation.play();
-        });
-      });
-    }
-
-    modeStart.focus();
+    tutorialNext.focus();
   }
 
   function closeNetworkModeIntro() {

@@ -1850,6 +1850,150 @@ body.creation-mode .mode-indicator {
   }
 }
 
+/* ---------- Network Creation tutorial pages ---------- */
+
+/* Keep Page 2 compact and consistent with Page 1 */
+#network-tutorial-page-2 .ghost-info-demo {
+  height: 150px;
+  max-height: 150px;
+  overflow: hidden;
+}
+
+#network-tutorial-page-2 .ghost-demo-scene {
+  display: block;
+  width: 100%;
+  height: 120px;
+  max-height: 120px;
+}
+
+#network-tutorial-page-2 .ghost-demo-caption {
+  margin-top: -16px;
+  position: relative;
+  z-index: 2;
+}
+.network-tutorial-page[hidden] {
+  display: none;
+}
+
+.network-tutorial-page {
+  animation: tutorialPageEnter 0.3s ease both;
+}
+
+@keyframes tutorialPageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Next button uses the existing Start Creating style */
+#network-tutorial-next {
+  background: var(--text);
+  color: var(--bg);
+}
+
+/* Page 2: keep both stars stationary */
+.ghost-info-demo .ghost-info-star {
+  animation: none;
+}
+
+/* Page 2: dashed connection stays visible */
+.ghost-info-demo .ghost-info-line {
+  opacity: 1;
+  animation: ghostInfoLinePulse 5.5s ease-in-out infinite;
+}
+
+/* Cursor moves to the line and clicks */
+.ghost-info-cursor {
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.4));
+  animation: ghostInfoCursor 5.5s ease-in-out infinite;
+}
+
+/* Information panel appears after the click */
+.ghost-info-card {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ghostInfoCardReveal 5.5s ease-in-out infinite;
+}
+
+@keyframes ghostInfoCursor {
+  0%,
+  12% {
+    transform: translate(110px, 95px);
+    opacity: 0;
+  }
+
+  28%,
+  42% {
+    transform: translate(175px, 48px);
+    opacity: 1;
+  }
+
+  48%,
+  100% {
+    transform: translate(175px, 48px);
+    opacity: 0;
+  }
+}
+
+@keyframes ghostInfoLinePulse {
+  0%,
+  28%,
+  100% {
+    stroke-width: 2;
+    opacity: 0.8;
+  }
+
+  38%,
+  48% {
+    stroke-width: 4;
+    opacity: 1;
+  }
+}
+
+@keyframes ghostInfoCardReveal {
+  0%,
+  43% {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+
+  53%,
+  90% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .network-tutorial-page,
+  .ghost-info-demo .ghost-info-line,
+  .ghost-info-cursor,
+  .ghost-info-card {
+    animation: none;
+  }
+
+  .ghost-info-cursor {
+    opacity: 0;
+  }
+
+  .ghost-info-card {
+    opacity: 1;
+  }
+}
+
 /* Modal buttons */
 
 .network-mode-actions {
@@ -2644,4 +2788,22 @@ body.is-member .profile {
 }
 .saver {
   z-index: 50;
+}
+
+/* Page 2: prevent the information panel overlapping the caption */
+#network-tutorial-page-2 .ghost-info-demo {
+  height: auto;
+  max-height: none;
+}
+
+#network-tutorial-page-2 .ghost-demo-scene {
+  height: 140px;
+  max-height: none;
+  overflow: hidden;
+}
+
+#network-tutorial-page-2 .ghost-demo-caption {
+  margin-top: 2px;
+  position: relative;
+  z-index: 2;
 }
