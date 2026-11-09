@@ -2853,6 +2853,24 @@
       speculativeConnections.length > 0;
 
     button.style.display = shouldShow ? "block" : "none";
+
+    var ghostHelpButton = document.getElementById("ghost-help-btn");
+
+    if (ghostHelpButton) {
+      ghostHelpButton.style.display = shouldShow ? "flex" : "none";
+    }
+
+    if (!shouldShow) {
+      var ghostPopup = document.querySelector(".ghost-help-popup");
+
+      if (ghostPopup) {
+        ghostPopup.hidden = true;
+      }
+
+      if (ghostHelpButton) {
+        ghostHelpButton.setAttribute("aria-expanded", "false");
+      }
+    }
   }
   // Returns the IDs of all stars connected to this star,
   // including original and ghost connections.
@@ -3281,8 +3299,79 @@
   document
     .getElementById("network-mode-controls")
     .appendChild(resetConnectionsButton);
+
+  // Ghost Connections help icon.
+  var ghostHelpBtn = document.createElement("button");
+  ghostHelpBtn.className = "legend-help-btn";
+  ghostHelpBtn.id = "ghost-help-btn";
+  ghostHelpBtn.type = "button";
+  ghostHelpBtn.textContent = "?";
+  ghostHelpBtn.setAttribute("aria-label", "Ghost Connections help");
+  ghostHelpBtn.setAttribute("aria-expanded", "false");
+
+  // Ghost Connections help popup.
+  var ghostHelpPopup = document.createElement("div");
+  ghostHelpPopup.className = "legend-help-popup ghost-help-popup";
+  ghostHelpPopup.hidden = true;
+  ghostHelpPopup.innerHTML =
+    "<strong>Ghost Connections</strong>" +
+    "<p><b>Right-click:</b> Remove an individual dashed Ghost Connection.</p>" +
+    "<p><b>Reset Connections:</b> Remove all Ghost Connections at once.</p>";
+
+  document.body.appendChild(ghostHelpPopup);
+
+  document.getElementById("network-mode-controls").appendChild(ghostHelpBtn);
+
   resetConnectionsButton.style.display = "none";
+  ghostHelpBtn.style.display = "none";
+
   updateResetConnectionsVisibility();
+
+  // Toggle Ghost Connections help popup.
+  ghostHelpBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+
+    var isOpening = ghostHelpPopup.hidden;
+
+    ghostHelpPopup.hidden = !isOpening;
+    ghostHelpBtn.setAttribute("aria-expanded", String(isOpening));
+
+    if (isOpening) {
+      var rect = ghostHelpBtn.getBoundingClientRect();
+
+      // Open above the button.
+      ghostHelpPopup.style.left = rect.left + "px";
+      ghostHelpPopup.style.top =
+        Math.max(12, rect.top - ghostHelpPopup.offsetHeight - 8) + "px";
+
+      // Keep it within the screen horizontally.
+      var popupRect = ghostHelpPopup.getBoundingClientRect();
+
+      if (popupRect.right > window.innerWidth - 12) {
+        ghostHelpPopup.style.left =
+          window.innerWidth - popupRect.width - 12 + "px";
+      }
+    }
+  });
+
+  // Close when clicking elsewhere.
+  document.addEventListener("pointerdown", function (e) {
+    if (
+      !ghostHelpBtn.contains(e.target) &&
+      !ghostHelpPopup.contains(e.target)
+    ) {
+      ghostHelpPopup.hidden = true;
+      ghostHelpBtn.setAttribute("aria-expanded", "false");
+    }
+  });
+
+  // Close with Escape.
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") {
+      ghostHelpPopup.hidden = true;
+      ghostHelpBtn.setAttribute("aria-expanded", "false");
+    }
+  });
 
   var SPECULATIVE_LINE_DURATION = 550;
   var STAR_RETURN_DURATION = 650;

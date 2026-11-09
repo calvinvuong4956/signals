@@ -421,6 +421,18 @@ input:focus-visible,
   color: var(--text);
 }
 
+/* Ghost Connections help icon */
+#ghost-help-btn {
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+}
+
+/* Ensure help popups respect their hidden state */
+.legend-help-popup[hidden] {
+  display: none;
+}
+
 .legend-chips {
   display: flex;
   flex-direction: column;
