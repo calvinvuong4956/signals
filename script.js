@@ -4107,9 +4107,57 @@
     closeAllBtn.className = "legend-action-btn";
     closeAllBtn.type = "button";
     closeAllBtn.textContent = "Close all";
-    actionsEl.appendChild(selectAllBtn);
-    actionsEl.appendChild(closeAllBtn);
-    panel.insertBefore(actionsEl, chipsWrap);
+    // Sectors help button and popup.
+    var sectorHelpWrap = document.createElement("div");
+    sectorHelpWrap.className = "legend-help-wrap";
+
+    var sectorHelpBtn = document.createElement("button");
+    sectorHelpBtn.className = "legend-help-btn";
+    sectorHelpBtn.type = "button";
+    sectorHelpBtn.textContent = "?";
+    sectorHelpBtn.setAttribute("aria-label", "Sector filter help");
+    sectorHelpBtn.setAttribute("aria-expanded", "false");
+
+    var sectorHelpPopup = document.createElement("div");
+    sectorHelpPopup.className = "legend-help-popup";
+    sectorHelpPopup.hidden = true;
+    document.body.appendChild(sectorHelpPopup);
+    sectorHelpPopup.innerHTML =
+      "<strong>Sector controls</strong>" +
+      "<p><b>Left-click:</b> Show or hide a sector.</p>" +
+      "<p><b>Click and drag:</b> Select or deselect multiple sectors.</p>" +
+      "<p><b>Middle-click:</b> Isolate one sector. Middle-click it again to restore all sectors.</p>";
+
+    sectorHelpBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+
+      var isOpening = sectorHelpPopup.hidden;
+
+      sectorHelpPopup.hidden = !isOpening;
+      sectorHelpBtn.setAttribute("aria-expanded", String(isOpening));
+
+      if (isOpening) {
+        var rect = sectorHelpBtn.getBoundingClientRect();
+
+        sectorHelpPopup.style.left = rect.left + "px";
+        sectorHelpPopup.style.top = rect.bottom + 8 + "px";
+
+        // Keep the popup inside the visible screen.
+        requestAnimationFrame(function () {
+          var popupRect = sectorHelpPopup.getBoundingClientRect();
+
+          if (popupRect.bottom > window.innerHeight - 12) {
+            sectorHelpPopup.style.top =
+              Math.max(12, rect.top - popupRect.height - 8) + "px";
+          }
+
+          if (popupRect.right > window.innerWidth - 12) {
+            sectorHelpPopup.style.left =
+              window.innerWidth - popupRect.width - 12 + "px";
+          }
+        });
+      }
+    });
 
     categoryChipEls = [];
     var chipEls = categoryChipEls;
@@ -5136,10 +5184,13 @@
       if (e.key === "Escape") closeSavedPanel();
     });
     document.addEventListener("pointerdown", function (e) {
-      var panel = $("saved-panel");
-      if (!panel.classList.contains("open")) return;
-      if (panel.contains(e.target) || $("saver").contains(e.target)) return;
-      closeSavedPanel();
+      if (
+        !sectorHelpWrap.contains(e.target) &&
+        !sectorHelpPopup.contains(e.target)
+      ) {
+        sectorHelpPopup.hidden = true;
+        sectorHelpBtn.setAttribute("aria-expanded", "false");
+      }
     });
   })();
 
