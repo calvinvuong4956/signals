@@ -399,6 +399,28 @@ input:focus-visible,
   line-height: 1.55;
 }
 
+.legend-help-popup[hidden] {
+  display: none;
+}
+
+.legend-help-popup strong {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 11px;
+}
+
+.legend-help-popup p {
+  margin: 0 0 7px;
+}
+
+.legend-help-popup p:last-child {
+  margin-bottom: 0;
+}
+
+.legend-help-popup b {
+  color: var(--text);
+}
+
 .legend-chips {
   display: flex;
   flex-direction: column;

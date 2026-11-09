@@ -4159,6 +4159,31 @@
       }
     });
 
+    sectorHelpWrap.appendChild(sectorHelpBtn);
+
+    actionsEl.appendChild(selectAllBtn);
+    actionsEl.appendChild(closeAllBtn);
+    actionsEl.appendChild(sectorHelpWrap);
+    panel.insertBefore(actionsEl, chipsWrap);
+
+    // Close the sector help popup when clicking elsewhere.
+    document.addEventListener("pointerdown", function (e) {
+      if (
+        !sectorHelpWrap.contains(e.target) &&
+        !sectorHelpPopup.contains(e.target)
+      ) {
+        sectorHelpPopup.hidden = true;
+        sectorHelpBtn.setAttribute("aria-expanded", "false");
+      }
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") {
+        sectorHelpPopup.hidden = true;
+        sectorHelpBtn.setAttribute("aria-expanded", "false");
+      }
+    });
+
     categoryChipEls = [];
     var chipEls = categoryChipEls;
 
@@ -5182,15 +5207,6 @@
     });
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") closeSavedPanel();
-    });
-    document.addEventListener("pointerdown", function (e) {
-      if (
-        !sectorHelpWrap.contains(e.target) &&
-        !sectorHelpPopup.contains(e.target)
-      ) {
-        sectorHelpPopup.hidden = true;
-        sectorHelpBtn.setAttribute("aria-expanded", "false");
-      }
     });
   })();
 
