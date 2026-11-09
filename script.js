@@ -4717,6 +4717,17 @@
   /* accessible list view (also acts as no-WebGL fallback) */
   var listBtn = $("list-toggle-btn");
   var listView = $("list-view");
+  // Return to the 3D map when clicking the Alien logo.
+  var brandHomeBtn = $("brand-home-btn");
+
+  if (brandHomeBtn) {
+    brandHomeBtn.addEventListener("click", function () {
+      if (!listView.classList.contains("active")) return;
+
+      playClickSound();
+      toggleListView(false);
+    });
+  }
   listBtn.addEventListener("click", function () {
     closeGhostDescription();
 
