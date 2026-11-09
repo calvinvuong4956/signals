@@ -4475,17 +4475,24 @@
   }
 
   function selectNode(id) {
+    // Clicking the currently focused star again returns to the 3D map.
+    if (state.focusMode && id && id === state.selectedId) {
+      id = null;
+    }
+
     state.selectedId = id;
     state.hoveredId = null;
+
     if (id) {
       enterFocus(id);
       showProfile(id);
-      playSelectSound(); // little two-note "confirm" chime
+      playSelectSound();
     } else {
       exitFocus();
       hideProfile();
-      playCloseSound(); // softer tone backing out to the full map
+      playCloseSound();
     }
+
     refreshPointAttributes();
     updateLegendHoverChip();
     updateLegendChipHighlight();
