@@ -2099,12 +2099,12 @@
       playChime(freq, 0.1, 0.002, i * 0.04);
     });
   }
-  // generic short, neutral tick for ordinary UI clicks (toggles, buttons, filters) , 
+  // generic short, neutral tick for ordinary UI clicks (toggles, buttons, filters) ,
   function playClickSound() {
     playChime(1318.5, 0.05, 0.0016);
   }
 
-  // browsers won't let any sound play until there's been a real click/tap/keypress , 
+  // browsers won't let any sound play until there's been a real click/tap/keypress ,
   // this just wakes the audio context up on whichever comes first
   function wakeAudio() {
     ensureAudio();
@@ -2148,7 +2148,7 @@
     targetCameraY = 8;
   }
 
-  // keeps the selected node pinned at the centre while you drag-rotate around it in focus mode , 
+  // keeps the selected node pinned at the centre while you drag-rotate around it in focus mode ,
   // recomputes where that node would land given the CURRENT rotation, re-centers on that
   function updateFocusPivot() {
     if (!state.focusMode || !state.selectedId) return;
@@ -2239,7 +2239,7 @@
   // lives straight on the scene (not inside the constellation group) so it reads as a fixed
   // backdrop behind everything no matter how you spin or zoom the actual network
   function buildBackgroundStars() {
-    // sizeAttenuation was making these shrink to sub-pixel at this distance from the camera , 
+    // sizeAttenuation was making these shrink to sub-pixel at this distance from the camera ,
     // that's why they weren't showing up before. Fixed pixel size (sizeAttenuation:false) instead,
     // so they stay clearly visible no matter how far away or how much you zoom.
     var farCount = 1100;
@@ -2375,7 +2375,7 @@
       colors[i * 3 + 2] = c.b;
       sizes[i] = 6 + Math.min(node.degree, 6) * 1.6;
       highlight[i] = 0;
-      // member nodes get rendered as the floating astronaut model instead of a flat dot , 
+      // member nodes get rendered as the floating astronaut model instead of a flat dot ,
       // keep the point in the buffer (picking/lines/legend all key off it) but invisible
       visible[i] = node.isMember ? 0 : 1;
       node._idx = i;
@@ -4857,15 +4857,68 @@
   /* accessible list view (also acts as no-WebGL fallback) */
   var listBtn = $("list-toggle-btn");
   var listView = $("list-view");
+  // ABOUT ALIEN SIGNAL
+  var aboutOverlay = $("about-overlay");
+  var aboutClose = $("about-close");
+  var settingsAboutBtn = $("settings-about-btn");
+  var aboutPreviousFocus = null;
+
+  function openAboutPage() {
+    aboutPreviousFocus = document.activeElement;
+
+    // Close Settings if the About page was opened from there.
+    settingsPanel.classList.remove("open");
+    settingsPanel.setAttribute("aria-hidden", "true");
+    settingsBtn.setAttribute("aria-expanded", "false");
+
+    aboutOverlay.classList.add("open");
+    aboutOverlay.setAttribute("aria-hidden", "false");
+    playClickSound();
+    aboutClose.focus();
+  }
+
+  function closeAboutPage() {
+    aboutOverlay.classList.remove("open");
+    aboutOverlay.setAttribute("aria-hidden", "true");
+    playClickSound();
+
+    if (aboutPreviousFocus && aboutPreviousFocus.isConnected) {
+      aboutPreviousFocus.focus();
+    }
+  }
+
+  settingsAboutBtn.addEventListener("click", openAboutPage);
+  aboutClose.addEventListener("click", closeAboutPage);
+
+  aboutOverlay.addEventListener("click", function (event) {
+    if (event.target === aboutOverlay) {
+      closeAboutPage();
+    }
+  });
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && aboutOverlay.classList.contains("open")) {
+      event.preventDefault();
+      closeAboutPage();
+    }
+  });
   // Return to the 3D map when clicking the Alien logo.
   var brandHomeBtn = $("brand-home-btn");
 
   if (brandHomeBtn) {
     brandHomeBtn.addEventListener("click", function () {
-      if (!listView.classList.contains("active")) return;
+      // List view: return to the 3D network.
+      if (listView.classList.contains("active")) {
+        playClickSound();
+        toggleListView(false);
+        return;
+      }
 
-      playClickSound();
-      toggleListView(false);
+      // Focused view: keep existing behaviour (no About page).
+      if (state.focusMode) return;
+
+      // Main 3D network: open About page.
+      openAboutPage();
     });
   }
   listBtn.addEventListener("click", function () {
@@ -5158,7 +5211,7 @@
     return node;
   }
 
-  // small, self-contained three.js scene for the astronaut preview inside the modal , 
+  // small, self-contained three.js scene for the astronaut preview inside the modal ,
   // separate from the main map's renderer/camera entirely
   function createAstronautPreview(canvas) {
     var THREE_ = window.THREE;
@@ -5965,7 +6018,6 @@
         .catch(function () {});
     }
   })();
-
 
   /* =======================================================================
      WEBSITE PREVIEW, the exhibit is unattended, so visitors can never be sent

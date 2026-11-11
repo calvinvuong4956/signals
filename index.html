@@ -61,7 +61,14 @@
         <!-- ringed planet, top right -->
         <svg class="deco deco-planet" viewBox="0 0 200 200">
           <circle cx="100" cy="100" r="46" />
-          <ellipse class="deco-ring" cx="100" cy="100" rx="92" ry="22" transform="rotate(-18 100 100)" />
+          <ellipse
+            class="deco-ring"
+            cx="100"
+            cy="100"
+            rx="92"
+            ry="22"
+            transform="rotate(-18 100 100)"
+          />
         </svg>
         <!-- rocket, bottom left -->
         <svg class="deco deco-rocket" viewBox="0 0 120 200">
@@ -98,7 +105,10 @@
         <!-- small planet, mid right -->
         <svg class="deco deco-planet-sm" viewBox="0 0 120 120">
           <circle cx="60" cy="60" r="34" />
-          <path class="deco-line" d="M30 52c18 6 42 6 60 0M28 70c20 8 44 8 64 0" />
+          <path
+            class="deco-line"
+            d="M30 52c18 6 42 6 60 0M28 70c20 8 44 8 64 0"
+          />
         </svg>
         <!-- comet, top middle -->
         <svg class="deco deco-comet" viewBox="0 0 220 60">
@@ -316,6 +326,50 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- ABOUT ALIEN SIGNAL -->
+      <div id="about-overlay" aria-hidden="true">
+        <section
+          class="about-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="about-title"
+        >
+          <button id="about-close" type="button" aria-label="Close About page">
+            &times;
+          </button>
+
+          <span class="about-eyebrow">EXPLORE THE NETWORK</span>
+          <h2 id="about-title">About ALIEN SIGNAL</h2>
+          <p class="about-tagline">
+            Discover connections. Explore possibilities.
+          </p>
+
+          <p>
+            ALIEN SIGNAL is an interactive 3D network map designed to help
+            visitors explore the organisations, practitioners, and groups that
+            shape policy, advocacy, research, and social change.
+          </p>
+
+          <p>
+            Each star represents an organisation. Explore the constellation,
+            discover different sectors, learn about their roles, and investigate
+            the relationships that connect them.
+          </p>
+
+          <p>
+            ALIEN SIGNAL encourages visitors to imagine new possibilities.
+            Through Network Creation Mode, stars can be connected to explore
+            hypothetical collaborations and consider how different organisations
+            might work together.
+          </p>
+
+          <div class="about-footer">
+            Explore the network. Follow the connections. Imagine what could come
+            next.
+          </div>
+        </section>
       </div>
 
       <!-- tooltip div, JS just drags it around and toggles "visible" on hover -->
@@ -630,6 +684,16 @@
           </div>
         </div>
 
+        <h3 class="settings-section-heading">Information</h3>
+        <button
+          id="settings-about-btn"
+          class="settings-about-btn"
+          type="button"
+        >
+          <span>About ALIEN SIGNAL</span>
+          <span aria-hidden="true">↗</span>
+        </button>
+
         <h3
           class="settings-section-heading"
           id="account-section-heading"
@@ -737,7 +801,11 @@
       </div>
 
       <!-- WEBSITE PREVIEW: a small window in the middle of the page. Clicking outside it goes back to normal. -->
-      <div class="site-frame-overlay" id="site-frame-overlay" aria-hidden="true">
+      <div
+        class="site-frame-overlay"
+        id="site-frame-overlay"
+        aria-hidden="true"
+      >
         <div
           class="site-frame"
           role="dialog"
