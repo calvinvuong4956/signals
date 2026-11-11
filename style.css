@@ -2784,7 +2784,7 @@ body.is-member .profile {
   scrollbar-gutter: stable;
 }
 .profile-close {
-  z-index: 2;
+  z-index: 10;
 }
 
 /* layering: profile card and the alien sit in front of the top bar, the Join
