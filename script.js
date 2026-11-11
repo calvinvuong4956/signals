@@ -6197,7 +6197,7 @@
 
   // TESTING: 10 seconds
   // EXHIBITION: change to 5 * 60 * 1000
-  var EXHIBITION_IDLE_MS = 10 * 1000;
+  var EXHIBITION_IDLE_MS = 5 * 60 * 1000;
 
   var exhibitionIdleTimer = null;
   var exhibitionTimerActive = false;
@@ -6280,7 +6280,7 @@
       setTimeout(function () {
         loading.style.display = "none";
         stopIntroStars();
-      }, 2500); // matches the warp-out transition duration in style.css so the fade never cuts off early
+      }, 1560); // matches the warp-out transition duration in style.css so the fade never cuts off early
     }
 
     // sequence once the field's filled in: name resolves, then the enter button fades in below it and waits
