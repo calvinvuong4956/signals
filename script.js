@@ -6191,6 +6191,48 @@
   }
   var stopIntroStars = initIntroStars();
 
+  // ============================================================
+  // EXHIBITION INACTIVITY RESET
+  // ============================================================
+
+  // TESTING: 10 seconds
+  // EXHIBITION: change to 5 * 60 * 1000
+  var EXHIBITION_IDLE_MS = 10 * 1000;
+
+  var exhibitionIdleTimer = null;
+  var exhibitionTimerActive = false;
+
+  function resetExhibitionIdleTimer() {
+    if (!exhibitionTimerActive) return;
+
+    clearTimeout(exhibitionIdleTimer);
+
+    exhibitionIdleTimer = setTimeout(function () {
+      // Reload restores the initial intro screen and clears
+      // temporary network interactions.
+      window.location.reload();
+    }, EXHIBITION_IDLE_MS);
+  }
+
+  function startExhibitionIdleTimer() {
+    exhibitionTimerActive = true;
+    resetExhibitionIdleTimer();
+  }
+
+  // Track real visitor activity, not automatic 3D animations.
+  [
+    "pointerdown",
+    "pointermove",
+    "keydown",
+    "wheel",
+    "touchstart",
+    "scroll",
+  ].forEach(function (eventName) {
+    window.addEventListener(eventName, resetExhibitionIdleTimer, {
+      passive: true,
+    });
+  });
+
   // 7. BOOT, kicks everything off once the fonts + webgl are ready
   function boot() {
     var hasWebGL = (function () {
@@ -6238,7 +6280,7 @@
       setTimeout(function () {
         loading.style.display = "none";
         stopIntroStars();
-      }, 1560); // matches the warp-out transition duration in style.css so the fade never cuts off early
+      }, 2500); // matches the warp-out transition duration in style.css so the fade never cuts off early
     }
 
     // sequence once the field's filled in: name resolves, then the enter button fades in below it and waits
@@ -6252,10 +6294,19 @@
           if (enterBtn) {
             enterBtn.classList.add("visible");
             enterBtn.addEventListener("click", function handleEnter() {
-              enterBtn.removeEventListener("click", handleEnter); // one shot, no double-firing the warp
+              enterBtn.removeEventListener("click", handleEnter);
               enterBtn.disabled = true;
+
               playSelectSound();
+
+              // Open About immediately, underneath the intro.
+              openAboutPage();
+
+              // Warp the intro away to reveal the About page.
               warpIntoMap();
+
+              // Begin inactivity tracking.
+              startExhibitionIdleTimer();
             });
           }
         }, 700); // short hold after the name lands before the button shows up
