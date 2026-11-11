@@ -1,7 +1,7 @@
 // server.ts
 //
 // Serves the static site (index.html, script.js, style.css, hum.mp3, astronaut.glb, …)
-// and a small JSON API for "Join the Constellation" — sign up, log in, and list the
+// and a small JSON API for "Join the Constellation", sign up, log in, and list the
 // member nodes people have added to the network. Storage is Deno KV: no extra
 // database to stand up, works the same locally (with --unstable-kv) and on Deno
 // Deploy, which provides KV automatically for every deployed app.
@@ -109,7 +109,7 @@ async function handleSignup(req: Request): Promise<Response> {
 
   const existing = await kv.get<Account>(["accounts", email]);
   if (existing.value) {
-    return jsonResponse({ error: "An account with that email already exists — log in instead." }, 409);
+    return jsonResponse({ error: "An account with that email already exists. Log in instead." }, 409);
   }
 
   const salt = randomHex(8);

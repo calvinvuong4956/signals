@@ -1,4 +1,4 @@
-// signals network map — app logic, split out of index.html so it's not a nightmare to find stuff
+// signals network map, app logic, split out of index.html so it's not a nightmare to find stuff
 // added: close all + select all buttons on the filters, hover tooltip w/ org name, and calvin's slower/hover-paused rotation
 
 (function () {
@@ -14,6 +14,38 @@
   var modeOverlay = document.getElementById("network-mode-overlay");
   var modeStart = document.getElementById("network-mode-start");
   var modeCancel = document.getElementById("network-mode-cancel");
+
+  var tutorialPage1 = document.getElementById("network-tutorial-page-1");
+  var tutorialPage2 = document.getElementById("network-tutorial-page-2");
+  var tutorialNext = document.getElementById("network-tutorial-next");
+  var tutorialBack = document.getElementById("network-tutorial-back");
+
+  function showTutorialPage(page) {
+    tutorialPage1.hidden = page !== 1;
+    tutorialPage2.hidden = page !== 2;
+
+    // Restart animations on whichever page is visible.
+    var activePage = page === 1 ? tutorialPage1 : tutorialPage2;
+
+    activePage.querySelectorAll("*").forEach(function (element) {
+      element.getAnimations().forEach(function (animation) {
+        animation.cancel();
+        animation.play();
+      });
+    });
+  }
+
+  tutorialNext.addEventListener("click", function () {
+    playClickSound();
+    showTutorialPage(2);
+    tutorialBack.focus();
+  });
+
+  tutorialBack.addEventListener("click", function () {
+    playClickSound();
+    showTutorialPage(1);
+    tutorialNext.focus();
+  });
 
   function setNetworkMode(mode) {
     networkMode = mode;
@@ -46,23 +78,10 @@
     modeOverlay.classList.add("open");
     modeOverlay.setAttribute("aria-hidden", "false");
 
-    // Restart the tutorial animation from the beginning
-    var ghostDemo = document.querySelector(".ghost-demo");
+    // Always start from Page 1.
+    showTutorialPage(1);
 
-    if (ghostDemo) {
-      var animatedElements = ghostDemo.querySelectorAll(
-        ".ghost-demo-star, .ghost-demo-cursor, .ghost-demo-origin, .ghost-demo-line",
-      );
-
-      animatedElements.forEach(function (element) {
-        element.getAnimations().forEach(function (animation) {
-          animation.currentTime = 0;
-          animation.play();
-        });
-      });
-    }
-
-    modeStart.focus();
+    tutorialNext.focus();
   }
 
   function closeNetworkModeIntro() {
@@ -100,7 +119,7 @@
     }
   });
 
-  // 1. DATA — this is the real dataset now (136 orgs, 16 sectors), edit the arrays below if TLaWC sends updates
+  // 1. DATA, this is the real dataset now (136 orgs, 16 sectors), edit the arrays below if TLaWC sends updates
   var CATEGORIES = [
     {
       id: "govtier",
@@ -148,25 +167,25 @@
     },
     {
       id: "fn-national",
-      label: "First Nations \u2014 National Peak Bodies",
+      label: "First Nations: National Peak Bodies",
       color: "--cat-fn-national",
       hex: "#3991C6",
     },
     {
       id: "fn-uluru",
-      label: "First Nations \u2014 Uluru Statement, Voice and Treaty",
+      label: "First Nations: Uluru Statement, Voice and Treaty",
       color: "--cat-fn-uluru",
       hex: "#5976CF",
     },
     {
       id: "fn-truth",
-      label: "First Nations \u2014 Truth-telling Bodies",
+      label: "First Nations: Truth-telling Bodies",
       color: "--cat-fn-truth",
       hex: "#4B39C6",
     },
     {
       id: "fn-land",
-      label: "First Nations \u2014 Land Councils and Traditional Owner Bodies",
+      label: "First Nations: Land Councils and Traditional Owner Bodies",
       color: "--cat-fn-land",
       hex: "#9459CF",
     },
@@ -217,13 +236,13 @@
     },
     {
       id: "parliamentary-library-media-policy-and-regulation-quick-guide",
-      name: "Parliamentary Library \u2014 Media Policy and Regulation Quick Guide",
+      name: "Parliamentary Library: Media Policy and Regulation Quick Guide",
       category: "govtier",
       role: "Federal",
       description:
         "APS research resource summarising the federal media policy and regulatory landscape; a standing reference point rather than an organisation",
       url: "https://www.aph.gov.au",
-      contact: "Not applicable \u2014 parliamentary research service",
+      contact: "Not applicable (parliamentary research service)",
       tag2: null,
       connections: [],
     },
@@ -316,7 +335,7 @@
         "Peak body for Indigenous housing, co-chairs the national Housing Policy Partnership with Treasury",
       url: "https://natsiha.org.au",
       contact: "Contact via website",
-      tag2: "Also listed under First Nations \u2014 National Peak Bodies",
+      tag2: "Also listed under First Nations: National Peak Bodies",
       connections: [],
     },
     {
@@ -1233,7 +1252,7 @@
     },
     {
       id: "snaicc-national-voice-for-our-children",
-      name: "SNAICC \u2014 National Voice for our Children",
+      name: "SNAICC: National Voice for our Children",
       category: "fn-national",
       role: "Peak Body",
       description:
@@ -1273,7 +1292,7 @@
       category: "fn-national",
       role: "Representative Body",
       description:
-        "National representative body for Aboriginal and Torres Strait Islander peoples. Historic \u2014 funding withdrawn 2019, status as an active peak body has changed",
+        "National representative body for Aboriginal and Torres Strait Islander peoples. Historic: funding withdrawn 2019, status as an active peak body has changed",
       url: "https://nationalcongress.com.au",
       contact: "Site may be inactive",
       tag2: null,
@@ -1416,7 +1435,7 @@
       category: "fn-truth",
       role: "Royal Commission (concluded)",
       description:
-        "Australia's first formal truth-telling inquiry (Victoria); tabled its final report July 2025 and has since concluded \u2014 retained as the reference model for state truth-telling",
+        "Australia's first formal truth-telling inquiry (Victoria); tabled its final report July 2025 and has since concluded, retained as the reference model for state truth-telling",
       url: "https://www.yoorrook.org.au",
       contact: "Commission has concluded",
       tag2: null,
@@ -1464,7 +1483,7 @@
       category: "fn-truth",
       role: "Treaty Process (unconfirmed status)",
       description:
-        "Territory-level treaty and truth-telling process; status subject to NT Government policy change \u2014 verify current status before relying on this",
+        "Territory-level treaty and truth-telling process; status subject to NT Government policy change, so verify current status before relying on this",
       url: "",
       contact: "Not publicly listed",
       tag2: null,
@@ -1726,7 +1745,7 @@
       category: "events",
       role: "Conference",
       description:
-        "International public-service design conference; 2026 edition 23\u201325 September, Edinburgh; regularly draws Australian public-sector delegates",
+        "International public-service design conference; 2026 edition 23 to 25 September, Edinburgh; regularly draws Australian public-sector delegates",
       url: "https://govservicedesign.net",
       contact: "Contact via website",
       tag2: null,
@@ -1738,7 +1757,7 @@
       category: "events",
       role: "Conference",
       description:
-        "Canberra, 30\u201331 March 2026; computational policy design and \u201crules as code,\u201d with a Dept of Finance gov-to-gov session",
+        "Canberra, 30 to 31 March 2026; computational policy design and \u201crules as code,\u201d with a Dept of Finance gov-to-gov session",
       url: "https://openfisca.org/en/conference/2026",
       contact: "Contact via website",
       tag2: null,
@@ -1769,7 +1788,7 @@
     },
     {
       id: "australian-public-service-academy-service-design-courses",
-      name: "Australian Public Service Academy \u2014 service design courses",
+      name: "Australian Public Service Academy: service design courses",
       category: "events",
       role: "Capability Program",
       description:
@@ -1797,7 +1816,7 @@
       category: "events",
       role: "Conference",
       description:
-        "Australian Association for Research in Education's annual conference \u2014 key education research and policy gathering",
+        "Australian Association for Research in Education's annual conference, a key education research and policy gathering",
       url: "https://www.aare.edu.au",
       contact: "office@aare.edu.au",
       tag2: null,
@@ -1805,7 +1824,7 @@
     },
   ];
 
-  // 2. GRAPH BUILD — turns each node's connections[] into real two-way edges, no dupes
+  // 2. GRAPH BUILD, turns each node's connections[] into real two-way edges, no dupes
   var nodeById = {};
   NODES.forEach(function (n) {
     nodeById[n.id] = n;
@@ -1840,7 +1859,7 @@
     catIndex[c.id] = i;
   });
 
-  // 3. THEME HELPERS — little utils for pulling colours out of the CSS vars
+  // 3. THEME HELPERS, little utils for pulling colours out of the CSS vars
   function cssVar(name) {
     return getComputedStyle(document.body).getPropertyValue(name).trim();
   }
@@ -1865,7 +1884,7 @@
     return cssVar(cat.color);
   }
 
-  // 4. LAYOUT — works out where every node sits ONCE up front, no physics running every frame
+  // 4. LAYOUT, works out where every node sits ONCE up front, no physics running every frame
   var layout = {}; // id -> THREE.Vector3 (local, pre-rotation)
 
   function computeLayout() {
@@ -1961,7 +1980,7 @@
     }
   }
 
-  // 5. THREE.JS SCENE — the actual webgl setup, camera, points, lines, all that
+  // 5. THREE.JS SCENE, the actual webgl setup, camera, points, lines, all that
   var wrap = document.getElementById("canvas-wrap");
   var THREE_ = window.THREE;
   var scene,
@@ -1993,7 +2012,7 @@
     state.activeCats[c.id] = true;
   });
 
-  // ---- space-themed sound fx — all synthesised with Web Audio, no mp3s to ship ----
+  // ---- space-themed sound fx, all synthesised with Web Audio, no mp3s to ship ----
   var MUTE_KEY = "signals-muted";
   state.muted = localStorage.getItem(MUTE_KEY) === "1";
 
@@ -2010,7 +2029,7 @@
     masterGain.connect(audioCtx.destination);
   }
 
-  // click/hover sfx — note + quiet detuned overtone, glassy instead of a flat beep
+  // click/hover sfx, note + quiet detuned overtone, glassy instead of a flat beep
   function playChime(freq, duration, peak, delay) {
     if (!audioCtx || state.muted) return;
     var t0 = audioCtx.currentTime + (delay || 0);
@@ -2030,7 +2049,7 @@
     });
   }
 
-  // background hum, looped from hum.mp3, faded in quiet — plays through a plain <audio> element
+  // background hum, looped from hum.mp3, faded in quiet, plays through a plain <audio> element
   // (not fetch+decodeAudioData) so it still works when the page is opened straight from disk.
   // the file's own mix now carries the harmonics it needs to read on small speakers, so this is
   // just a gain node, nothing fancier.
@@ -2069,7 +2088,7 @@
     playChime(1760, 0.07, 0.002);
   } // one quick twinkly tick (A6)
   function playSelectSound() {
-    // little ascending sparkle — C E G C, like a magic "ding!"
+    // little ascending sparkle, C E G C, like a magic "ding!"
     [1046.5, 1318.5, 1568, 2093].forEach(function (freq, i) {
       playChime(freq, 0.12, 0.003, i * 0.045);
     });
@@ -2080,12 +2099,12 @@
       playChime(freq, 0.1, 0.002, i * 0.04);
     });
   }
-  // generic short, neutral tick for ordinary UI clicks (toggles, buttons, filters) —
+  // generic short, neutral tick for ordinary UI clicks (toggles, buttons, filters) , 
   function playClickSound() {
     playChime(1318.5, 0.05, 0.0016);
   }
 
-  // browsers won't let any sound play until there's been a real click/tap/keypress —
+  // browsers won't let any sound play until there's been a real click/tap/keypress , 
   // this just wakes the audio context up on whichever comes first
   function wakeAudio() {
     ensureAudio();
@@ -2129,7 +2148,7 @@
     targetCameraY = 8;
   }
 
-  // keeps the selected node pinned at the centre while you drag-rotate around it in focus mode —
+  // keeps the selected node pinned at the centre while you drag-rotate around it in focus mode , 
   // recomputes where that node would land given the CURRENT rotation, re-centers on that
   function updateFocusPivot() {
     if (!state.focusMode || !state.selectedId) return;
@@ -2198,7 +2217,7 @@
 
     // the node points/lines are unlit shaders (color comes straight from the
     // attribute, no lighting needed), but the astronaut model uses normal PBR
-    // materials — without lights it renders almost black, so give it just enough
+    // materials, without lights it renders almost black, so give it just enough
     // to read clearly without washing out the rest of the scene
     scene.add(new THREE_.AmbientLight(0xffffff, 0.8));
     var astronautKeyLight = new THREE_.DirectionalLight(0xffffff, 1.1);
@@ -2220,7 +2239,7 @@
   // lives straight on the scene (not inside the constellation group) so it reads as a fixed
   // backdrop behind everything no matter how you spin or zoom the actual network
   function buildBackgroundStars() {
-    // sizeAttenuation was making these shrink to sub-pixel at this distance from the camera —
+    // sizeAttenuation was making these shrink to sub-pixel at this distance from the camera , 
     // that's why they weren't showing up before. Fixed pixel size (sizeAttenuation:false) instead,
     // so they stay clearly visible no matter how far away or how much you zoom.
     var farCount = 1100;
@@ -2240,10 +2259,10 @@
       farColors[i * 3] = 0.8 + warmth * 0.2;
       farColors[i * 3 + 1] = 0.85 + warmth * 0.1;
       farColors[i * 3 + 2] = 0.9 + (1 - warmth) * 0.1;
-      // navy variant, shown instead in light mode so these actually read against a light backdrop
-      farColorsLight[i * 3] = 0.1 + warmth * 0.08;
-      farColorsLight[i * 3 + 1] = 0.14 + warmth * 0.08;
-      farColorsLight[i * 3 + 2] = 0.36 + warmth * 0.14;
+      // soft periwinkle variant, shown instead in light mode so these actually read against a light backdrop
+      farColorsLight[i * 3] = 0.4 + warmth * 0.12;
+      farColorsLight[i * 3 + 1] = 0.38 + warmth * 0.08;
+      farColorsLight[i * 3 + 2] = 0.66 + warmth * 0.12;
     }
     farGeo.setAttribute(
       "position",
@@ -2261,7 +2280,7 @@
     backgroundStars = new THREE_.Points(farGeo, farMat);
     scene.add(backgroundStars);
 
-    // denser band of points clustered near a tilted plane — reads as a milky-way-ish smear
+    // denser band of points clustered near a tilted plane, reads as a milky-way-ish smear
     var bandCount = 1800;
     var bandGeo = new THREE_.BufferGeometry();
     var bandPositions = new Float32Array(bandCount * 3);
@@ -2282,9 +2301,9 @@
       bandColors[j * 3] = 0.75 + tint * 0.25;
       bandColors[j * 3 + 1] = 0.78 + tint * 0.2;
       bandColors[j * 3 + 2] = 0.85 + (1 - tint) * 0.15;
-      bandColorsLight[j * 3] = 0.12 + tint * 0.08;
-      bandColorsLight[j * 3 + 1] = 0.16 + tint * 0.06;
-      bandColorsLight[j * 3 + 2] = 0.4 + tint * 0.12;
+      bandColorsLight[j * 3] = 0.48 + tint * 0.1;
+      bandColorsLight[j * 3 + 1] = 0.46 + tint * 0.08;
+      bandColorsLight[j * 3 + 2] = 0.72 + tint * 0.1;
     }
     bandGeo.setAttribute(
       "position",
@@ -2356,7 +2375,7 @@
       colors[i * 3 + 2] = c.b;
       sizes[i] = 6 + Math.min(node.degree, 6) * 1.6;
       highlight[i] = 0;
-      // member nodes get rendered as the floating astronaut model instead of a flat dot —
+      // member nodes get rendered as the floating astronaut model instead of a flat dot , 
       // keep the point in the buffer (picking/lines/legend all key off it) but invisible
       visible[i] = node.isMember ? 0 : 1;
       node._idx = i;
@@ -2476,7 +2495,7 @@
   }
 
   // ---- name pill for whichever connected node you're currently hovering ----
-  // only shows on hover now, not all of them at once — reuses one pooled div per node so we're
+  // only shows on hover now, not all of them at once, reuses one pooled div per node so we're
   // not creating/destroying elements every frame
   var connLabelsWrap = document.getElementById("conn-labels");
   var connLabelPool = [];
@@ -2722,9 +2741,41 @@
   // CREATION MODE: MOVE INDIVIDUAL STARS
   // ========================================
 
+  // ---- mini astronaut: when you pick up a member's astronaut in Creation Mode, a
+  // smaller copy rides along with the cursor while the full-size one stays put ----
+  var dragMini = null; // { id, obj }
+  var MINI_ASTRONAUT_SCALE = 0.5;
+
+  function startDragMini(node) {
+    if (dragMini && dragMini.id === node.id) return;
+    stopDragMini();
+    if (!astronautTemplate || !memberAstronauts[node.id]) return;
+    var mini = astronautTemplate.clone(true);
+    mini.scale.setScalar(MINI_ASTRONAUT_SCALE);
+    mini.position.copy(layout[node.id]);
+    mini.rotation.copy(memberAstronauts[node.id].obj.rotation);
+    constellation.add(mini);
+    dragMini = { id: node.id, obj: mini };
+    needsRender = true;
+  }
+
+  function stopDragMini(id) {
+    if (!dragMini) return;
+    if (id && dragMini.id !== id) return;
+    constellation.remove(dragMini.obj);
+    dragMini = null;
+    needsRender = true;
+  }
+
   function moveStarTo(node, newPosition) {
     // Update the stored 3D position.
     layout[node.id].copy(newPosition);
+
+    // The carried mini astronaut follows the star and tumbles a little as it moves.
+    if (dragMini && dragMini.id === node.id) {
+      dragMini.obj.position.copy(newPosition);
+      dragMini.obj.rotation.y += 0.06;
+    }
 
     // Update the visible star.
     var pointPositions = pointCloud.geometry.attributes.position;
@@ -2853,6 +2904,24 @@
       speculativeConnections.length > 0;
 
     button.style.display = shouldShow ? "block" : "none";
+
+    var ghostHelpButton = document.getElementById("ghost-help-btn");
+
+    if (ghostHelpButton) {
+      ghostHelpButton.style.display = shouldShow ? "flex" : "none";
+    }
+
+    if (!shouldShow) {
+      var ghostPopup = document.querySelector(".ghost-help-popup");
+
+      if (ghostPopup) {
+        ghostPopup.hidden = true;
+      }
+
+      if (ghostHelpButton) {
+        ghostHelpButton.setAttribute("aria-expanded", "false");
+      }
+    }
   }
   // Returns the IDs of all stars connected to this star,
   // including original and ghost connections.
@@ -3281,8 +3350,79 @@
   document
     .getElementById("network-mode-controls")
     .appendChild(resetConnectionsButton);
+
+  // Ghost Connections help icon.
+  var ghostHelpBtn = document.createElement("button");
+  ghostHelpBtn.className = "legend-help-btn";
+  ghostHelpBtn.id = "ghost-help-btn";
+  ghostHelpBtn.type = "button";
+  ghostHelpBtn.textContent = "?";
+  ghostHelpBtn.setAttribute("aria-label", "Ghost Connections help");
+  ghostHelpBtn.setAttribute("aria-expanded", "false");
+
+  // Ghost Connections help popup.
+  var ghostHelpPopup = document.createElement("div");
+  ghostHelpPopup.className = "legend-help-popup ghost-help-popup";
+  ghostHelpPopup.hidden = true;
+  ghostHelpPopup.innerHTML =
+    "<strong>Ghost Connections</strong>" +
+    "<p><b>Right-click:</b> Remove an individual dashed Ghost Connection.</p>" +
+    "<p><b>Reset Connections:</b> Remove all Ghost Connections at once.</p>";
+
+  document.body.appendChild(ghostHelpPopup);
+
+  document.getElementById("network-mode-controls").appendChild(ghostHelpBtn);
+
   resetConnectionsButton.style.display = "none";
+  ghostHelpBtn.style.display = "none";
+
   updateResetConnectionsVisibility();
+
+  // Toggle Ghost Connections help popup.
+  ghostHelpBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+
+    var isOpening = ghostHelpPopup.hidden;
+
+    ghostHelpPopup.hidden = !isOpening;
+    ghostHelpBtn.setAttribute("aria-expanded", String(isOpening));
+
+    if (isOpening) {
+      var rect = ghostHelpBtn.getBoundingClientRect();
+
+      // Open above the button.
+      ghostHelpPopup.style.left = rect.left + "px";
+      ghostHelpPopup.style.top =
+        Math.max(12, rect.top - ghostHelpPopup.offsetHeight - 8) + "px";
+
+      // Keep it within the screen horizontally.
+      var popupRect = ghostHelpPopup.getBoundingClientRect();
+
+      if (popupRect.right > window.innerWidth - 12) {
+        ghostHelpPopup.style.left =
+          window.innerWidth - popupRect.width - 12 + "px";
+      }
+    }
+  });
+
+  // Close when clicking elsewhere.
+  document.addEventListener("pointerdown", function (e) {
+    if (
+      !ghostHelpBtn.contains(e.target) &&
+      !ghostHelpPopup.contains(e.target)
+    ) {
+      ghostHelpPopup.hidden = true;
+      ghostHelpBtn.setAttribute("aria-expanded", "false");
+    }
+  });
+
+  // Close with Escape.
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") {
+      ghostHelpPopup.hidden = true;
+      ghostHelpBtn.setAttribute("aria-expanded", "false");
+    }
+  });
 
   var SPECULATIVE_LINE_DURATION = 550;
   var STAR_RETURN_DURATION = 650;
@@ -3660,6 +3800,7 @@
 
       if (progress >= 1) {
         starReturnAnimations.splice(i, 1);
+        stopDragMini(animation.node.id); // the mini has flown home, so it goes away
       }
     }
   }
@@ -3789,6 +3930,9 @@
         if (pointer.moved) {
           console.log("DRAG TYPE:", dragInteraction);
           if (dragInteraction === "star" && draggedStar) {
+            // Picked up an astronaut? Show a smaller one being carried.
+            if (memberAstronauts[draggedStar.id]) startDragMini(draggedStar);
+
             // Convert cursor position into a 3D ray.
             updateDragRay(e);
 
@@ -3856,7 +4000,7 @@
             newId || hoveredGhostConnection ? "pointer" : "grab";
           if (newId) playHoverSound(); // little blip every time you land on a new node
         }
-        // plain cursor tooltip is for the normal overview — in focus mode we've got the pill labels instead
+        // plain cursor tooltip is for the normal overview, in focus mode we've got the pill labels instead
         if (hit && !state.focusMode) {
           showTooltip(hit.name, e.clientX, e.clientY);
         } else {
@@ -4017,7 +4161,7 @@
       needsRender = true;
     }
 
-    // backdrop drifts on its own, totally independent of the network — it's meant to feel like
+    // backdrop drifts on its own, totally independent of the network, it's meant to feel like
     // we're just sitting still in space while everything else moves, not spin with the drag
     if (!reduceMotion) {
       backgroundStars.rotation.y += 0.00004;
@@ -4025,7 +4169,7 @@
       needsRender = true;
     }
 
-    // free-floating drift for every joined member's astronaut — gentle, uneven
+    // free-floating drift for every joined member's astronaut, gentle, uneven
     // movement on all three axes plus a slow tilt wobble, so it reads as actually
     // floating in zero gravity rather than bobbing on a fixed rail
     var memberIds = Object.keys(memberAstronauts);
@@ -4077,7 +4221,7 @@
     }
   }
 
-  // 6. UI WIRING — all the button clicks n stuff live down here
+  // 6. UI WIRING, all the button clicks n stuff live down here
   var $ = function (id) {
     return document.getElementById(id);
   };
@@ -4107,9 +4251,82 @@
     closeAllBtn.className = "legend-action-btn";
     closeAllBtn.type = "button";
     closeAllBtn.textContent = "Close all";
+    // Sectors help button and popup.
+    var sectorHelpWrap = document.createElement("div");
+    sectorHelpWrap.className = "legend-help-wrap";
+
+    var sectorHelpBtn = document.createElement("button");
+    sectorHelpBtn.className = "legend-help-btn";
+    sectorHelpBtn.type = "button";
+    sectorHelpBtn.textContent = "?";
+    sectorHelpBtn.setAttribute("aria-label", "Sector filter help");
+    sectorHelpBtn.setAttribute("aria-expanded", "false");
+
+    var sectorHelpPopup = document.createElement("div");
+    sectorHelpPopup.className = "legend-help-popup";
+    sectorHelpPopup.hidden = true;
+    document.body.appendChild(sectorHelpPopup);
+    sectorHelpPopup.innerHTML =
+      "<strong>Sector controls</strong>" +
+      "<p><b>Left-click:</b> Show or hide a sector.</p>" +
+      "<p><b>Click and drag:</b> Select or deselect multiple sectors.</p>" +
+      "<p><b>Middle-click:</b> Isolate one sector. Middle-click it again to restore all sectors.</p>";
+
+    sectorHelpBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+
+      var isOpening = sectorHelpPopup.hidden;
+
+      sectorHelpPopup.hidden = !isOpening;
+      sectorHelpBtn.setAttribute("aria-expanded", String(isOpening));
+
+      if (isOpening) {
+        var rect = sectorHelpBtn.getBoundingClientRect();
+
+        sectorHelpPopup.style.left = rect.left + "px";
+        sectorHelpPopup.style.top = rect.bottom + 8 + "px";
+
+        // Keep the popup inside the visible screen.
+        requestAnimationFrame(function () {
+          var popupRect = sectorHelpPopup.getBoundingClientRect();
+
+          if (popupRect.bottom > window.innerHeight - 12) {
+            sectorHelpPopup.style.top =
+              Math.max(12, rect.top - popupRect.height - 8) + "px";
+          }
+
+          if (popupRect.right > window.innerWidth - 12) {
+            sectorHelpPopup.style.left =
+              window.innerWidth - popupRect.width - 12 + "px";
+          }
+        });
+      }
+    });
+
+    sectorHelpWrap.appendChild(sectorHelpBtn);
+
     actionsEl.appendChild(selectAllBtn);
     actionsEl.appendChild(closeAllBtn);
+    actionsEl.appendChild(sectorHelpWrap);
     panel.insertBefore(actionsEl, chipsWrap);
+
+    // Close the sector help popup when clicking elsewhere.
+    document.addEventListener("pointerdown", function (e) {
+      if (
+        !sectorHelpWrap.contains(e.target) &&
+        !sectorHelpPopup.contains(e.target)
+      ) {
+        sectorHelpPopup.hidden = true;
+        sectorHelpBtn.setAttribute("aria-expanded", "false");
+      }
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") {
+        sectorHelpPopup.hidden = true;
+        sectorHelpBtn.setAttribute("aria-expanded", "false");
+      }
+    });
 
     categoryChipEls = [];
     var chipEls = categoryChipEls;
@@ -4312,18 +4529,99 @@
     });
   }
 
+  // Draggable panels in Focused View
+  function makeFocusPanelDraggable(panelId) {
+    var panel = document.getElementById(panelId);
+    if (!panel) return;
+
+    var handle = document.createElement("div");
+    handle.className = "focus-panel-drag-handle";
+    handle.title = "Drag to reposition";
+    handle.setAttribute("aria-label", "Drag panel to reposition");
+    handle.innerHTML = '<span class="drag-grip-icon">⠿</span>';
+    panel.insertBefore(handle, panel.firstChild);
+
+    var dragging = false;
+    var offsetX = 0;
+    var offsetY = 0;
+
+    handle.addEventListener("pointerdown", function (e) {
+      if (!state.focusMode || e.button !== 0) return;
+
+      e.preventDefault();
+
+      var rect = panel.getBoundingClientRect();
+      offsetX = e.clientX - rect.left;
+      offsetY = e.clientY - rect.top;
+
+      panel.style.left = rect.left + "px";
+      panel.style.top = rect.top + "px";
+      panel.style.right = "auto";
+      panel.classList.add("focus-panel-moved");
+
+      dragging = true;
+      handle.setPointerCapture(e.pointerId);
+    });
+
+    handle.addEventListener("pointermove", function (e) {
+      if (!dragging) return;
+
+      var maxX = Math.max(0, window.innerWidth - panel.offsetWidth);
+      var maxY = Math.max(0, window.innerHeight - panel.offsetHeight);
+
+      var x = Math.max(0, Math.min(e.clientX - offsetX, maxX));
+      var y = Math.max(0, Math.min(e.clientY - offsetY, maxY));
+
+      panel.style.left = x + "px";
+      panel.style.top = y + "px";
+    });
+
+    function stopDragging() {
+      dragging = false;
+    }
+
+    handle.addEventListener("pointerup", stopDragging);
+    handle.addEventListener("pointercancel", stopDragging);
+    handle.addEventListener("lostpointercapture", stopDragging);
+  }
+
+  function resetFocusPanelPositions() {
+    ["profile", "ghost-description-panel"].forEach(function (id) {
+      var panel = document.getElementById(id);
+      if (!panel) return;
+
+      panel.classList.remove("focus-panel-moved");
+      panel.style.left = "";
+      panel.style.top = "";
+      panel.style.right = "";
+    });
+  }
+
+  makeFocusPanelDraggable("profile");
+  makeFocusPanelDraggable("ghost-description-panel");
+
   function selectNode(id) {
+    // Clicking the currently focused star again returns to the 3D map.
+    if (state.focusMode && id && id === state.selectedId) {
+      id = null;
+    }
+
     state.selectedId = id;
     state.hoveredId = null;
+
+    // Reset draggable panels for each new focused view
+    resetFocusPanelPositions();
+
     if (id) {
       enterFocus(id);
       showProfile(id);
-      playSelectSound(); // little two-note "confirm" chime
+      playSelectSound();
     } else {
       exitFocus();
       hideProfile();
-      playCloseSound(); // softer tone backing out to the full map
+      playCloseSound();
     }
+
     refreshPointAttributes();
     updateLegendHoverChip();
     updateLegendChipHighlight();
@@ -4349,9 +4647,13 @@
 
     var linkEl = $("profile-link");
     if (node.url) {
-      linkEl.href = node.url;
+      // not a real href on purpose: nobody should be able to leave the exhibit
+      // (no new tab, no middle click). It opens the in-page preview instead.
+      linkEl.dataset.url = node.url;
+      linkEl.dataset.name = node.name;
       linkEl.style.display = "inline-block";
     } else {
+      delete linkEl.dataset.url;
       linkEl.style.display = "none";
     }
 
@@ -4496,7 +4798,7 @@
     needsRender = true;
   });
 
-  // sound now lives here instead of a standalone topbar icon — same mute
+  // sound now lives here instead of a standalone topbar icon, same mute
   // state/localStorage as before, just surfaced as a switch
   wireSwitch($("sound-switch"), !state.muted, function (isOn) {
     state.muted = !isOn;
@@ -4546,7 +4848,7 @@
       );
       bandAttr.needsUpdate = true;
       if (accentStars)
-        accentStars.material.color.set(isLight ? 0x1f2b55 : 0xffffff);
+        accentStars.material.color.set(isLight ? 0x7a70b5 : 0xffffff);
     }
 
     needsRender = true;
@@ -4555,6 +4857,17 @@
   /* accessible list view (also acts as no-WebGL fallback) */
   var listBtn = $("list-toggle-btn");
   var listView = $("list-view");
+  // Return to the 3D map when clicking the Alien logo.
+  var brandHomeBtn = $("brand-home-btn");
+
+  if (brandHomeBtn) {
+    brandHomeBtn.addEventListener("click", function () {
+      if (!listView.classList.contains("active")) return;
+
+      playClickSound();
+      toggleListView(false);
+    });
+  }
   listBtn.addEventListener("click", function () {
     closeGhostDescription();
 
@@ -4622,7 +4935,7 @@
   }
 
   /* =======================================================================
-     "Join the Constellation" — sign up / log in (small Deno KV-backed API,
+     "Join the Constellation", sign up / log in (small Deno KV-backed API,
      see server.ts), an astronaut model standing in for "you", and the
      joined org becoming a real new node on the map.
      ======================================================================= */
@@ -4687,6 +5000,75 @@
     );
   }
 
+  // reverse of addMemberNodeToScene: takes a member's node, astronaut and ghost
+  // connections off the map entirely (used on log out, so nothing is left behind)
+  function removeMemberNodeFromScene(id) {
+    var node = nodeById[id];
+    if (!node || !node.isMember) return;
+
+    // leave Focused View first if it's showing this node
+    if (state.selectedId === id) selectNode(null);
+    closeGhostDescription();
+    updateGhostConnectionHover(null);
+
+    // stop anything mid-drag or mid-return for this node
+    stopDragMini(id);
+    starReturnAnimations = starReturnAnimations.filter(function (a) {
+      return a.node.id !== id;
+    });
+    speculativeConnections.slice().forEach(function (connection) {
+      if (connection.fromId === id || connection.toId === id) {
+        removeSpeculativeConnection(connection);
+      }
+    });
+    updateResetConnectionsVisibility();
+
+    // the astronaut model
+    var m = memberAstronauts[id];
+    if (m) {
+      constellation.remove(m.obj);
+      delete memberAstronauts[id];
+    }
+    pendingAstronautNodeIds = pendingAstronautNodeIds.filter(function (x) {
+      return x !== id;
+    });
+
+    // the node itself
+    NODES.splice(NODES.indexOf(node), 1);
+    delete nodeById[id];
+    delete layout[id];
+    if (state.hoveredId === id) state.hoveredId = null;
+
+    var chipEntry = categoryChipEls.filter(function (entry) {
+      return entry.catId === node.category;
+    })[0];
+    if (chipEntry) {
+      var countEl = chipEntry.chip.querySelector(".chip-count");
+      if (countEl)
+        countEl.textContent = String(
+          Math.max(0, Number(countEl.textContent) - 1),
+        );
+    }
+
+    // rebuild the point cloud and line buffers without it
+    constellation.remove(pointCloud);
+    pointCloud.geometry.dispose();
+    pointCloud.material.dispose();
+    constellation.remove(lineBase);
+    lineBase.geometry.dispose();
+    lineBase.material.dispose();
+    constellation.remove(lineHighlight);
+    lineHighlight.geometry.dispose();
+    lineHighlight.material.dispose();
+    buildPoints();
+    buildLines();
+
+    $("node-tooltip").classList.remove("visible");
+    updateNodeCountLabel();
+    refreshPointAttributes();
+    needsRender = true;
+  }
+
   function addMemberNodeToScene(apiNode) {
     var THREE_ = window.THREE;
     var id = apiNode.id;
@@ -4713,7 +5095,7 @@
     NODES.push(node);
     nodeById[id] = node;
 
-    // the astronaut is you — it sits at the heart of the constellation rather than
+    // the astronaut is you, it sits at the heart of the constellation rather than
     // tucked into a category cluster, so it reads as the one node that's "the user"
     // among the 136 orgs. only this node moves in; nothing else reshuffles.
     var jitter = 10;
@@ -4739,7 +5121,7 @@
     }
     layout[id] = pos;
 
-    // rebuild the point cloud / line buffers with the extra node — cheap, and
+    // rebuild the point cloud / line buffers with the extra node, cheap, and
     // only happens on a join, never per frame
     constellation.remove(pointCloud);
     pointCloud.geometry.dispose();
@@ -4763,7 +5145,7 @@
     }
     updateNodeCountLabel();
 
-    // the floating astronaut model stands in for the dot — load it once, then spawn
+    // the floating astronaut model stands in for the dot, load it once, then spawn
     // (or queue the spawn if the model's still loading its first time around)
     if (!astronautTemplate) {
       pendingAstronautNodeIds.push(id);
@@ -4776,7 +5158,7 @@
     return node;
   }
 
-  // small, self-contained three.js scene for the astronaut preview inside the modal —
+  // small, self-contained three.js scene for the astronaut preview inside the modal , 
   // separate from the main map's renderer/camera entirely
   function createAstronautPreview(canvas) {
     var THREE_ = window.THREE;
@@ -4851,7 +5233,7 @@
   }
 
   /* =======================================================================
-     SAVE LIST — only for people who've joined. a little alien sits bottom-right
+     SAVE LIST, only for people who've joined. a little alien sits bottom-right
      (bobbing + a soft ring so the eye finds him); hovering him shows the
      "Save list" bubble, clicking opens the list. every other profile gets a
      "save this one" circle. ids sync to the account (/api/saved) so the list
@@ -5087,7 +5469,7 @@
       syncSavedFromServer();
       var overlayEl = $("join-overlay");
       if (overlayEl && overlayEl.classList.contains("open")) {
-        // still inside the welcome modal — he drops in once it closes, so you actually see it
+        // still inside the welcome modal, he drops in once it closes, so you actually see it
         saverRevealPending = true;
       } else {
         revealSaver();
@@ -5135,12 +5517,6 @@
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") closeSavedPanel();
     });
-    document.addEventListener("pointerdown", function (e) {
-      var panel = $("saved-panel");
-      if (!panel.classList.contains("open")) return;
-      if (panel.contains(e.target) || $("saver").contains(e.target)) return;
-      closeSavedPanel();
-    });
   })();
 
   (function wireJoinFlow() {
@@ -5166,63 +5542,63 @@
       govtier: {
         name: "Local Government Policy Forum",
         role: "Intergovernmental advisory body",
-        website: "https://lgpf.org.au",
+        website: "",
         description:
           "Coordinates policy positions between local councils and state government on shared service delivery.",
       },
       housing: {
         name: "Melbourne Youth Housing Collective",
         role: "Grassroots advocacy group",
-        website: "https://myhc.org.au",
+        website: "",
         description:
           "A tenant-led collective campaigning for affordable youth housing and tenancy protections across inner Melbourne.",
       },
       media: {
         name: "Independent Press Alliance",
         role: "Media advocacy coalition",
-        website: "https://independentpress.org.au",
+        website: "",
         description:
           "Campaigns for press freedom protections and sustainable funding models for local journalism.",
       },
       culture: {
         name: "Southbank Arts Collective",
         role: "Independent arts organisation",
-        website: "https://southbankarts.org.au",
+        website: "",
         description:
           "A community-run gallery and studio space supporting emerging Melbourne artists through exhibitions and grants.",
       },
       welfare: {
         name: "Fitzroy Community Support Network",
         role: "Social welfare charity",
-        website: "https://fcsn.org.au",
+        website: "",
         description:
           "Runs emergency relief, food security and casework programs for people experiencing hardship in inner Melbourne.",
       },
       business: {
         name: "Victorian Small Business Alliance",
         role: "Industry association",
-        website: "https://vsba.org.au",
+        website: "",
         description:
           "Represents small and family businesses in policy consultations on tax, red tape and local procurement.",
       },
       education: {
         name: "Digital Futures Learning Network",
         role: "Education advocacy body",
-        website: "https://digitalfutures.edu.au",
+        website: "",
         description:
           "Advocates for digital literacy curriculum reform in Victorian public schools.",
       },
       politics: {
         name: "Melbourne Civic Policy Roundtable",
         role: "Nonpartisan policy forum",
-        website: "https://mcpr.org.au",
+        website: "",
         description:
           "Brings together researchers and practitioners to brief policymakers on emerging civic issues.",
       },
       innovation: {
         name: "Greenlight Climate Tech Hub",
         role: "Innovation incubator",
-        website: "https://greenlighthub.io",
+        website: "",
         description:
           "Connects early-stage climate tech startups with policy makers and research institutions.",
       },
@@ -5230,26 +5606,34 @@
     var DEMO_FALLBACK = {
       name: "New Member Organisation",
       role: "Member organisation",
-      website: "https://example.org.au",
+      website: "",
       description:
         "A newly joined organisation taking part in the SIGNALS network.",
     };
 
-    sectorSelect.addEventListener("change", function () {
+    // the exhibit is unattended, so nobody should ever have to type: the form opens
+    // already filled in, and every visitor gets their own throwaway demo account
+    var DEMO_SECTOR = "innovation";
+    var DEMO_CREDS_KEY = "signals-demo-last";
+    var DEMO_PASSWORD = "signals2026";
+
+    function fillDemoDetails() {
       var preset = DEMO_PRESETS[sectorSelect.value] || DEMO_FALLBACK;
-      var stamp = Date.now().toString().slice(-5);
       $("join-name").value = preset.name;
       $("join-role").value = preset.role;
       $("join-website").value = preset.website;
       $("join-description").value = preset.description;
+      // a fresh address each time so two visitors never collide on "already exists"
       $("join-email").value =
-        preset.name
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "")
-          .slice(0, 18) +
-        stamp +
+        "visitor-" +
+        Math.random().toString(36).slice(2, 7) +
+        Date.now().toString(36).slice(-3) +
         "@demo.signals";
-      $("join-password").value = "signals2026";
+      $("join-password").value = DEMO_PASSWORD;
+    }
+
+    sectorSelect.addEventListener("change", function () {
+      fillDemoDetails();
       playClickSound();
     });
 
@@ -5300,10 +5684,14 @@
         playClickSound();
         var token = localStorage.getItem(JOIN_TOKEN_KEY);
         localStorage.removeItem(JOIN_TOKEN_KEY);
+        var leavingId = joinedNode && joinedNode.id;
         joinedNode = null;
+        // log out properly: the astronaut and node leave the map with you
+        if (leavingId) removeMemberNodeFromScene(leavingId);
+        if (settingsPanel.classList.contains("open")) settingsBtn.click(); // tuck settings away
         updateJoinedUI();
-        // the node itself stays on the map — it's real data now — this just signs
-        // this browser out so a different org can sign up or log in next
+        // the account stays saved on the server, so logging back in brings the
+        // astronaut back; this just signs this browser out for the next visitor
         if (token) {
           fetch("/api/logout", {
             method: "POST",
@@ -5333,7 +5721,7 @@
 
     joinBtn.addEventListener("click", function () {
       if (joinedNode) {
-        // already part of the network — jump straight to your own node
+        // already part of the network, jump straight to your own node
         selectNode(joinedNode.id);
         return;
       }
@@ -5348,7 +5736,7 @@
         closeOverlay();
     });
 
-    // sign-up is two short steps: about the organisation, then the login details
+    // demo sign-up is a single pre-filled screen (pane 2 stays hidden but still holds the login details)
     function showFormPane(n) {
       $("join-pane-1").hidden = n !== 1;
       $("join-pane-2").hidden = n !== 2;
@@ -5360,17 +5748,26 @@
     }
     function openSignupForm() {
       stopPreviews();
+      // demo mode: one screen, everything pre-filled, one button to join
+      sectorSelect.value = DEMO_SECTOR;
+      fillDemoDetails();
+      $("join-pane1-error").hidden = true;
+      $("join-form-error").hidden = true;
       showFormPane(1);
       showStep(stepForm);
+      $("join-form-title").textContent = "Your organisation";
+      $("join-form-sub").textContent =
+        "For the purpose of this demonstration, this is your information.";
     }
-    function goToPane2() {
+    // checks the one visible screen of the sign-up form; true when it can be sent
+    function validatePane1() {
       var err = $("join-pane1-error");
       err.hidden = true;
       if (!$("join-name").value.trim()) {
         err.textContent = "Add your organisation's name to continue.";
         err.hidden = false;
         $("join-name").focus();
-        return;
+        return false;
       }
       var site = $("join-website");
       if (site.value && !site.checkValidity()) {
@@ -5378,11 +5775,9 @@
           "That website doesn't look right. Start it with https://";
         err.hidden = false;
         site.focus();
-        return;
+        return false;
       }
-      playClickSound();
-      showFormPane(2);
-      $("join-email").focus();
+      return true;
     }
 
     $("join-start-btn").addEventListener("click", function () {
@@ -5393,13 +5788,21 @@
       playClickSound();
       stopPreviews();
       showStep(stepLogin);
-      $("login-email").focus();
+      // demo mode: fill in the last demo account made on this browser
+      try {
+        var last = JSON.parse(localStorage.getItem(DEMO_CREDS_KEY) || "null");
+        if (last && last.email) {
+          $("login-email").value = last.email;
+          $("login-password").value = last.password || DEMO_PASSWORD;
+        }
+      } catch (e) {}
+      $("login-form-error").hidden = true;
+      $("login-submit-btn").focus();
     });
     $("login-new-btn").addEventListener("click", function () {
       playClickSound();
       openSignupForm();
     });
-    $("join-next-btn").addEventListener("click", goToPane2);
     $("join-pane2-back-btn").addEventListener("click", function () {
       playClickSound();
       showFormPane(1);
@@ -5423,23 +5826,23 @@
 
     $("join-step-form").addEventListener("submit", function (e) {
       e.preventDefault();
-      if (!$("join-pane-1").hidden) {
-        goToPane2(); // pressing Enter on step 1 just moves to step 2
-        return;
-      }
+      if (!validatePane1()) return;
       var errEl = $("join-form-error");
       errEl.hidden = true;
       if (
         !$("join-email").checkValidity() ||
         !$("join-password").checkValidity()
       ) {
-        errEl.textContent =
-          "Enter a valid email and a password of at least 6 characters.";
-        errEl.hidden = false;
+        // demo mode: the sign-in details are hidden, so put the message on the visible screen
+        $("join-pane1-error").textContent =
+          "Something is off with the demo login details. Go back and try again.";
+        $("join-pane1-error").hidden = false;
         return;
       }
       var submitBtn = $("join-submit-btn");
+      var nextBtn = $("join-next-btn");
       submitBtn.disabled = true;
+      nextBtn.disabled = true; // the visible button, so a double tap can't sign up twice
 
       fetch("/api/signup", {
         method: "POST",
@@ -5461,6 +5864,16 @@
           });
         })
         .then(function (body) {
+          // remember this demo account so "Log in" can fill itself in later
+          try {
+            localStorage.setItem(
+              DEMO_CREDS_KEY,
+              JSON.stringify({
+                email: $("join-email").value,
+                password: $("join-password").value,
+              }),
+            );
+          } catch (e) {}
           setJoined(body.token, body.node);
           stopPreviews();
           $("join-done-title").textContent = "Welcome, " + body.node.name;
@@ -5470,11 +5883,13 @@
           startPreview($("join-done-canvas"));
         })
         .catch(function (err) {
-          errEl.textContent = err.message;
-          errEl.hidden = false;
+          // pane 2 is hidden in demo mode, so show the problem on pane 1
+          $("join-pane1-error").textContent = err.message;
+          $("join-pane1-error").hidden = false;
         })
         .finally(function () {
           submitBtn.disabled = false;
+          nextBtn.disabled = false;
         });
     });
 
@@ -5524,7 +5939,7 @@
       if (id) selectNode(id);
     });
 
-    // quietly reconnect if this browser already joined before — waits for the
+    // quietly reconnect if this browser already joined before, waits for the
     // 3D scene to actually exist first, since this can resolve before boot() does
     function applyReconnectedNode(apiNode) {
       if (!pointCloud || !constellation) {
@@ -5551,9 +5966,77 @@
     }
   })();
 
+
+  /* =======================================================================
+     WEBSITE PREVIEW, the exhibit is unattended, so visitors can never be sent
+     off to an external site. A small window in the middle of the page shows the
+     site instead; clicking anywhere outside it (or pressing close / Escape, or
+     just leaving it alone for a couple of minutes) puts everything back to normal.
+     ======================================================================= */
+  (function wireSiteFrame() {
+    var overlay = $("site-frame-overlay");
+    var link = $("profile-link");
+    if (!overlay || !link) return;
+    var iframe = $("site-frame-iframe");
+    var loading = $("site-frame-loading");
+    var IDLE_CLOSE_MS = 120000;
+    var idleTimer = null;
+
+    function closeFrame() {
+      if (!overlay.classList.contains("open")) return;
+      overlay.classList.remove("open");
+      overlay.setAttribute("aria-hidden", "true");
+      clearTimeout(idleTimer);
+      iframe.src = "about:blank"; // stop the page (and any sound or video) straight away
+      playCloseSound();
+    }
+    function armIdleTimer() {
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(closeFrame, IDLE_CLOSE_MS);
+    }
+    function openFrame() {
+      var url = link.dataset.url;
+      if (!url) return;
+      playClickSound();
+      $("site-frame-title").textContent = link.dataset.name || url;
+      $("site-frame-address").textContent = url.replace(/^https?:\/\//, "");
+      loading.hidden = false;
+      iframe.onload = function () {
+        loading.hidden = true;
+      };
+      iframe.src = url;
+      overlay.classList.add("open");
+      overlay.setAttribute("aria-hidden", "false");
+      armIdleTimer();
+    }
+
+    link.addEventListener("click", function (e) {
+      e.preventDefault();
+      openFrame();
+    });
+    link.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openFrame();
+      }
+    });
+    // anywhere outside the window goes back to normal
+    overlay.addEventListener("pointerdown", function (e) {
+      if (e.target === overlay) closeFrame();
+    });
+    $("site-frame-close").addEventListener("click", closeFrame);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeFrame();
+    });
+    // pointer activity over the window keeps it open while someone is actually reading
+    overlay.addEventListener("pointermove", function () {
+      if (overlay.classList.contains("open")) armIdleTimer();
+    });
+  })();
+
   // little starfield that plays behind the loading screen, warps out once the map's ready
   // stars light up starting from the centre and radiating outward, each one TWINKLING into
-  // existence (flickering up, not just fading in) — no spinner anymore, this IS the loading state
+  // existence (flickering up, not just fading in), no spinner anymore, this IS the loading state
   var INTRO_BUILD_MS = 1500; // stars start sparse and trickle, then the pace visibly picks up near the end
   function initIntroStars() {
     var canvas = document.getElementById("intro-stars");
@@ -5565,7 +6048,7 @@
       cy = h / 2;
     var coreRadius = Math.min(w, h) * 0.45;
     var maxDist = Math.sqrt(cx * cx + cy * cy);
-    var count = Math.min(900, Math.floor((w * h) / 1650)); // dense field — sense of scale
+    var count = Math.min(900, Math.floor((w * h) / 1650)); // dense field, sense of scale
     var stars = [];
     for (var i = 0; i < count; i++) {
       var inCore = Math.random() < 0.7; // most stars cluster toward the middle, like the reference pic
@@ -5580,13 +6063,13 @@
         x = Math.random() * w;
         y = Math.random() * h;
       }
-      // distance from centre decides WHEN a star lights up — centre first, edges last, with a
+      // distance from centre decides WHEN a star lights up, centre first, edges last, with a
       // little jitter so it doesn't look like a perfectly rigid sweep
       var distFrac =
         Math.sqrt((x - cx) * (x - cx) + (y - cy) * (y - cy)) / maxDist;
-      // a handful of slightly bigger/brighter anchor stars, still plain white — no colour tint at all
+      // a handful of slightly bigger/brighter anchor stars, still plain white, no colour tint at all
       var isHero = inCore && Math.random() < 0.028;
-      // rough depth cue — some stars sit "further back", smaller and dimmer, others feel closer
+      // rough depth cue, some stars sit "further back", smaller and dimmer, others feel closer
       var depth = 0.5 + Math.random() * 0.5;
       stars.push({
         x: x,
@@ -5600,7 +6083,7 @@
         depth: depth,
         phase: Math.random() * Math.PI * 2,
         speed: 0.4 + Math.random() * 0.8,
-        // pow(distFrac, 0.6) instead of a straight line — compresses most stars into a later,
+        // pow(distFrac, 0.6) instead of a straight line, compresses most stars into a later,
         // denser window so the first beat is sparse and slow, then the rest rush in near the end
         appearAt: reduceMotion
           ? 0
@@ -5615,7 +6098,7 @@
         if (t < s.appearAt) return; // hasn't lit up yet in the centre-out build
         var sinceAppear = t - s.appearAt;
         var envelope = reduceMotion ? 1 : Math.min(1, sinceAppear / 380); // snappier pop-in than before
-        // small, restrained flicker — real starlight shimmers subtly, it doesn't pulse like a beacon
+        // small, restrained flicker, real starlight shimmers subtly, it doesn't pulse like a beacon
         var flicker = reduceMotion
           ? 1
           : Math.max(
@@ -5656,7 +6139,7 @@
   }
   var stopIntroStars = initIntroStars();
 
-  // 7. BOOT — kicks everything off once the fonts + webgl are ready
+  // 7. BOOT, kicks everything off once the fonts + webgl are ready
   function boot() {
     var hasWebGL = (function () {
       try {
@@ -5684,7 +6167,7 @@
       note.style.cssText =
         "max-width:520px;margin:0 auto 18px;text-align:center;";
       note.textContent =
-        "Showing the accessible list view — 3D rendering isn\u2019t available on this device or browser.";
+        "Showing the accessible list view. 3D rendering isn\u2019t available on this device or browser.";
       $("list-grid").parentNode.insertBefore(note, $("list-grid"));
       return;
     }
@@ -5694,11 +6177,11 @@
     refreshPointAttributes();
     tick();
 
-    // warps into the map — now only ever fired by the enter button, not a timer
+    // warps into the map, now only ever fired by the enter button, not a timer
     function warpIntoMap() {
       var loading = $("loading");
       var flash = $("intro-flash");
-      if (flash) flash.classList.add("flash"); // quick bloom right at the cut — the "arrival" beat
+      if (flash) flash.classList.add("flash"); // quick bloom right at the cut, the "arrival" beat
       loading.classList.add("warp-out"); // fade + zoom, feels like pushing through into the map
       setTimeout(function () {
         loading.style.display = "none";
@@ -5717,7 +6200,7 @@
           if (enterBtn) {
             enterBtn.classList.add("visible");
             enterBtn.addEventListener("click", function handleEnter() {
-              enterBtn.removeEventListener("click", handleEnter); // one shot — no double-firing the warp
+              enterBtn.removeEventListener("click", handleEnter); // one shot, no double-firing the warp
               enterBtn.disabled = true;
               playSelectSound();
               warpIntoMap();

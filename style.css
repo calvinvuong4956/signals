@@ -1,5 +1,5 @@
 /* ============================================================
-   SIGNALS Network Map — styles
+   SIGNALS Network Map, styles
    ============================================================ */
 
 :root {
@@ -29,34 +29,42 @@
   --cat-events: #c6396e;
   --radius: 2px;
   --shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  /* faint space silhouettes behind the map */
+  --deco-fill: #9db0e6;
+  --deco-hole: #0a0d14;
+  --deco-opacity: 0.045;
   color-scheme: dark;
 }
 [data-theme="light"] {
-  --bg: #f3f4f1;
-  --bg-elevated: #ffffff;
-  --bg-elevated-2: #ecedea;
-  --text: #161a1f;
-  --text-dim: #5c6470;
-  --accent: #b9862a;
-  --line: rgba(22, 26, 31, 0.1);
-  --line-strong: rgba(22, 26, 31, 0.24);
-  --cat-govtier: #9d4444;
-  --cat-housing: #96542b;
-  --cat-media: #9d8744;
-  --cat-culture: #89962b;
-  --cat-welfare: #709d44;
-  --cat-business: #39962b;
-  --cat-education: #449d5a;
-  --cat-politics: #2b966e;
-  --cat-innovation: #449d9d;
-  --cat-fn-national: #2b6e96;
-  --cat-fn-uluru: #445a9d;
-  --cat-fn-truth: #392b96;
-  --cat-fn-land: #70449d;
-  --cat-design-studios: #892b96;
-  --cat-policy-labs: #9d4487;
-  --cat-events: #962b54;
-  --shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+  /* pastel light mode: soft lavender paper, deep indigo text, candy-coloured sectors */
+  --bg: #f7f2fc;
+  --bg-elevated: #fffcfe;
+  --bg-elevated-2: #f1eaf9;
+  --text: #34304f;
+  --text-dim: #756f9b;
+  --accent: #c95f88;
+  --line: rgba(52, 48, 79, 0.1);
+  --line-strong: rgba(52, 48, 79, 0.22);
+  --cat-govtier: #dc7474;
+  --cat-housing: #dc9b74;
+  --cat-media: #dcc274;
+  --cat-culture: #cfdc74;
+  --cat-welfare: #a8dc74;
+  --cat-business: #82dc74;
+  --cat-education: #74dc8e;
+  --cat-politics: #74dcb5;
+  --cat-innovation: #74dcdc;
+  --cat-fn-national: #74b5dc;
+  --cat-fn-uluru: #748edc;
+  --cat-fn-truth: #8274dc;
+  --cat-fn-land: #a874dc;
+  --cat-design-studios: #cf74dc;
+  --cat-policy-labs: #dc74c2;
+  --cat-events: #dc749b;
+  --shadow: 0 10px 34px rgba(120, 100, 170, 0.16);
+  --deco-fill: #b4b9cf;
+  --deco-hole: #f0eefa;
+  --deco-opacity: 0.2;
   color-scheme: light;
 }
 
@@ -72,7 +80,7 @@ body {
   overscroll-behavior: none;
 }
 body[data-theme="light"] {
-  background: linear-gradient(160deg, #eef0ef 0%, #e2e5e6 55%, #cfd3d6 100%);
+  background: linear-gradient(160deg, #fdeef6 0%, #f0eefd 48%, #e3f4f4 100%);
 }
 body {
   font-family: "Montserrat", system-ui, sans-serif;
@@ -342,6 +350,95 @@ input:focus-visible,
 }
 .legend-action-btn:hover {
   color: var(--text);
+}
+
+.legend-help-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.legend-help-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border: 1px solid var(--text-dim);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: "Arimo", sans-serif;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.legend-help-btn:hover,
+.legend-help-btn:focus-visible {
+  color: var(--text);
+  border-color: var(--text);
+}
+
+.legend-help-popup {
+  position: fixed;
+  z-index: 99999;
+  box-sizing: border-box;
+  width: 280px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+
+  /* Fully opaque background */
+  background: var(--bg-elevated);
+  color: var(--text);
+
+  box-shadow: var(--shadow);
+  font-family: "Arimo", sans-serif;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.legend-help-popup[hidden] {
+  display: none;
+}
+
+.legend-help-popup strong {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 11px;
+}
+
+.legend-help-popup p {
+  margin: 0 0 7px;
+}
+
+.legend-help-popup p:last-child {
+  margin-bottom: 0;
+}
+
+.legend-help-popup b {
+  color: var(--text);
+}
+
+/* Ghost Connections help icon */
+#ghost-help-btn {
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+}
+
+/* Ensure help popups respect their hidden state */
+.legend-help-popup[hidden] {
+  display: none;
 }
 
 .legend-chips {
@@ -789,7 +886,7 @@ body.list-active .hint {
   z-index: 100;
   gap: 14px;
   overflow: hidden;
-  /* flat black — nothing else going on back here, the stars do all the work */
+  /* flat black, nothing else going on back here, the stars do all the work */
   background: #000;
   transition:
     opacity 1.5s cubic-bezier(0.33, 1, 0.68, 1),
@@ -816,7 +913,7 @@ body.list-active .hint {
   transform: scale(1.1);
 }
 
-/* a quick bloom across the whole screen right as it warps out — the "arrival" beat */
+/* a quick bloom across the whole screen right as it warps out, the "arrival" beat */
 #intro-flash {
   position: absolute;
   inset: 0;
@@ -845,7 +942,7 @@ body.list-active .hint {
   }
 }
 
-/* name resolves once the field's filled in — plain fade + tiny scale, no glow, no halo tint */
+/* name resolves once the field's filled in, plain fade + tiny scale, no glow, no halo tint */
 .intro-title {
   position: relative;
   z-index: 2;
@@ -870,7 +967,7 @@ body.list-active .hint {
   color: var(--text);
   text-indent: 0.28em; /* nudges the letterspacing back to optical centre */
 }
-/* the actual "go" button — fades in below the name and just sits there until clicked, no auto-timer.
+/* the actual "go" button, fades in below the name and just sits there until clicked, no auto-timer.
      dimmer than the title by default, a quieter second beat under the big name */
 .intro-enter {
   position: relative;
@@ -1074,16 +1171,16 @@ body.list-active .hint {
 }
 
 /* ---------- "Join the Constellation" button + modal ---------- */
-/* icon-only pill by default — hovering (or keyboard focus) extends it to
+/* icon-only pill by default, hovering (or keyboard focus) extends it to
    reveal the label, so it stays out of the way until you actually need it.
    the slot reserves a fixed 38px in the topbar's flex row so expanding
    never reflows its siblings. the clickable <button> itself is ALSO always
-   a fixed 38px — only a purely decorative, pointer-events:none background
+   a fixed 38px, only a purely decorative, pointer-events:none background
    pill grows behind it, and the label is an absolutely-positioned overlay.
    that means the real hit-area never changes size mid-interaction, which
    matters: a size change landing between mousedown and mouseup can make a
    browser's hit-test disagree about the target at each moment and swallow
-   the click outright — tested and confirmed this bites real clicks, not
+   the click outright, tested and confirmed this bites real clicks, not
    just a test-tooling quirk. */
 .join-btn-slot {
   position: relative;
@@ -1184,7 +1281,7 @@ body.list-active .hint {
   transition: opacity 0.25s ease;
 }
 [data-theme="light"] .join-overlay {
-  background: rgba(30, 32, 36, 0.35);
+  background: rgba(70, 60, 110, 0.28);
 }
 .join-overlay.open {
   opacity: 1;
@@ -1761,6 +1858,150 @@ body.creation-mode .mode-indicator {
   }
 }
 
+/* ---------- Network Creation tutorial pages ---------- */
+
+/* Keep Page 2 compact and consistent with Page 1 */
+#network-tutorial-page-2 .ghost-info-demo {
+  height: 150px;
+  max-height: 150px;
+  overflow: hidden;
+}
+
+#network-tutorial-page-2 .ghost-demo-scene {
+  display: block;
+  width: 100%;
+  height: 120px;
+  max-height: 120px;
+}
+
+#network-tutorial-page-2 .ghost-demo-caption {
+  margin-top: -16px;
+  position: relative;
+  z-index: 2;
+}
+.network-tutorial-page[hidden] {
+  display: none;
+}
+
+.network-tutorial-page {
+  animation: tutorialPageEnter 0.3s ease both;
+}
+
+@keyframes tutorialPageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Next button uses the existing Start Creating style */
+#network-tutorial-next {
+  background: var(--text);
+  color: var(--bg);
+}
+
+/* Page 2: keep both stars stationary */
+.ghost-info-demo .ghost-info-star {
+  animation: none;
+}
+
+/* Page 2: dashed connection stays visible */
+.ghost-info-demo .ghost-info-line {
+  opacity: 1;
+  animation: ghostInfoLinePulse 5.5s ease-in-out infinite;
+}
+
+/* Cursor moves to the line and clicks */
+.ghost-info-cursor {
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.4));
+  animation: ghostInfoCursor 5.5s ease-in-out infinite;
+}
+
+/* Information panel appears after the click */
+.ghost-info-card {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ghostInfoCardReveal 5.5s ease-in-out infinite;
+}
+
+@keyframes ghostInfoCursor {
+  0%,
+  12% {
+    transform: translate(110px, 95px);
+    opacity: 0;
+  }
+
+  28%,
+  42% {
+    transform: translate(175px, 48px);
+    opacity: 1;
+  }
+
+  48%,
+  100% {
+    transform: translate(175px, 48px);
+    opacity: 0;
+  }
+}
+
+@keyframes ghostInfoLinePulse {
+  0%,
+  28%,
+  100% {
+    stroke-width: 2;
+    opacity: 0.8;
+  }
+
+  38%,
+  48% {
+    stroke-width: 4;
+    opacity: 1;
+  }
+}
+
+@keyframes ghostInfoCardReveal {
+  0%,
+  43% {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+
+  53%,
+  90% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .network-tutorial-page,
+  .ghost-info-demo .ghost-info-line,
+  .ghost-info-cursor,
+  .ghost-info-card {
+    animation: none;
+  }
+
+  .ghost-info-cursor {
+    opacity: 0;
+  }
+
+  .ghost-info-card {
+    opacity: 1;
+  }
+}
+
 /* Modal buttons */
 
 .network-mode-actions {
@@ -1915,6 +2156,31 @@ body.focus-active #network-mode-controls {
 }
 
 /* ---------- Alien Signal logo (from Calvin's update) ---------- */
+
+.brand-home-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: default;
+}
+
+body.list-active .brand-home-btn {
+  cursor: pointer;
+}
+
+body.list-active .brand-home-btn:hover {
+  opacity: 0.7;
+}
+
+.brand-home-btn:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
 .brand-logo {
   width: 36px;
   height: 36px;
@@ -1924,7 +2190,8 @@ body.focus-active #network-mode-controls {
 }
 /* the logo is white, so it needs flipping to stay visible on the light theme */
 [data-theme="light"] .brand-logo {
-  filter: brightness(0) opacity(0.82);
+  /* white logo flipped to a deep indigo so it sits on the pastel page */
+  filter: brightness(0) opacity(0.78);
 }
 
 /* the Account row is a flex .row, which was overriding the [hidden] attribute and
@@ -2103,6 +2370,11 @@ body.focus-active #network-mode-controls {
     transform: scale(1.55);
     opacity: 0;
   }
+}
+
+/* Hide the Save Alien when the list view is open */
+body.list-active #saver {
+  display: none;
 }
 
 /* ---------- the little alien: your save list ---------- */
@@ -2496,7 +2768,7 @@ body.saved-open .profile {
   }
 }
 
-/* .join-step is display:flex, which beats the [hidden] attribute — without this the
+/* .join-step is display:flex, which beats the [hidden] attribute, without this the
    sign-up and log-in forms were all stacked under the intro at once */
 .join-step[hidden] {
   display: none !important;
@@ -2525,4 +2797,323 @@ body.is-member .profile {
 }
 .saver {
   z-index: 50;
+}
+
+/* Page 2: prevent the information panel overlapping the caption */
+#network-tutorial-page-2 .ghost-info-demo {
+  height: auto;
+  max-height: none;
+}
+
+#network-tutorial-page-2 .ghost-demo-scene {
+  height: 140px;
+  max-height: none;
+  overflow: hidden;
+}
+
+#network-tutorial-page-2 .ghost-demo-caption {
+  margin-top: 2px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Draggable panels in Focused View */
+.focus-panel-drag-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: none;
+
+  width: 100%;
+  height: 30px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: var(--text-dim);
+  opacity: 0.55;
+
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  letter-spacing: 3px;
+
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  z-index: 5;
+}
+.focus-panel-drag-handle:hover {
+  opacity: 1;
+  color: var(--text);
+}
+
+.focus-panel-drag-handle:active {
+  cursor: grabbing;
+}
+
+body:not(.focus-active) .focus-panel-drag-handle {
+  display: none;
+}
+
+.profile.focus-panel-moved,
+#ghost-description-panel.focus-panel-moved {
+  transform: none;
+  transition: opacity 0.2s ease;
+}
+
+.drag-grip-icon {
+  display: inline-block;
+  transform: rotate(90deg);
+  line-height: 1;
+}
+
+/* the sign-up form is a single pre-filled screen now, so the step dots stay hidden */
+.join-progress[hidden] {
+  display: none;
+}
+
+/* pastel light mode: white text on the rose accent (dark text only suits the dark theme's gold) */
+[data-theme="light"] .join-primary,
+[data-theme="light"] .saver-count,
+[data-theme="light"] .save-prompt.is-saved .save-circle {
+  color: #fff;
+}
+
+/* ============================================================
+   Space silhouettes (decorative, sits behind the 3D map)
+   ============================================================ */
+#space-deco {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+#canvas-wrap {
+  z-index: 1;
+}
+.deco {
+  position: absolute;
+  fill: var(--deco-fill);
+  opacity: var(--deco-opacity);
+  animation: deco-float 22s ease-in-out infinite alternate;
+  transition: opacity 0.35s ease;
+}
+.deco .deco-cut {
+  fill: var(--deco-hole);
+}
+.deco .deco-line {
+  fill: none;
+  stroke: var(--deco-hole);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.deco .deco-ring {
+  fill: none;
+  stroke: var(--deco-fill);
+  stroke-width: 7;
+}
+.deco .deco-stroke {
+  fill: none;
+  stroke: var(--deco-fill);
+  stroke-width: 4;
+}
+.deco-planet {
+  width: 110px;
+  right: 5%;
+  top: 9%;
+  transform: rotate(8deg);
+}
+.deco-rocket {
+  width: 54px;
+  left: 4%;
+  bottom: 9%;
+  transform: rotate(32deg);
+  animation-duration: 18s;
+}
+.deco-moon {
+  width: 60px;
+  right: 9%;
+  bottom: 11%;
+  animation-duration: 26s;
+}
+.deco-satellite {
+  width: 86px;
+  left: 9%;
+  top: 15%;
+  transform: rotate(-14deg);
+  animation-duration: 24s;
+}
+.deco-ufo {
+  width: 86px;
+  left: 3%;
+  top: 52%;
+  transform: rotate(-8deg);
+  animation-duration: 20s;
+}
+.deco-planet-sm {
+  width: 48px;
+  right: 3%;
+  top: 52%;
+  animation-duration: 28s;
+}
+.deco-comet {
+  width: 110px;
+  left: 42%;
+  top: 4%;
+  transform: rotate(10deg);
+  animation-duration: 30s;
+}
+@keyframes deco-float {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: 0 -14px;
+  }
+}
+@media (max-width: 760px) {
+  .deco-ufo,
+  .deco-comet,
+  .deco-planet-sm {
+    display: none;
+  }
+  .deco-planet {
+    width: 80px;
+  }
+  .deco-rocket {
+    width: 40px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .deco {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   Website preview window (the exhibit never leaves the page)
+   ============================================================ */
+.profile-link-btn {
+  cursor: pointer;
+}
+.site-frame-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 6, 10, 0.55);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+[data-theme="light"] .site-frame-overlay {
+  background: rgba(70, 60, 110, 0.28);
+}
+.site-frame-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.site-frame {
+  width: min(860px, 86vw);
+  height: min(600px, 74vh);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transform: translateY(10px) scale(0.98);
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.site-frame-overlay.open .site-frame {
+  transform: translateY(0) scale(1);
+}
+.site-frame-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px 10px 18px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.site-frame-heading {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.site-frame-title {
+  font-family: "Jura", system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.site-frame-address {
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.site-frame-close {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+.site-frame-close:hover {
+  background: var(--bg-elevated-2);
+}
+.site-frame-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: #fff;
+}
+.site-frame-body iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+}
+.site-frame-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  font-size: 13px;
+  color: #6b6b7b;
+  z-index: 0;
+}
+.site-frame-loading[hidden] {
+  display: none;
+}
+.site-frame-body iframe {
+  z-index: 1;
+}
+.site-frame-note {
+  margin: 0;
+  padding: 9px 18px;
+  font-size: 12px;
+  color: var(--text-dim);
+  border-top: 1px solid var(--line);
+  flex-shrink: 0;
 }
